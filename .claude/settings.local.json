@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-git)",
+      "Bash(npx create-next-app@latest mkpolis-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-git)",
+      "Bash(npx create-next-app@latest mkpolis-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-git --turbopack)",
+      "Bash(cp -r mkpolis-temp/* mkpolis-temp/.* .)",
+      "Bash(rm -rf mkpolis-temp)",
+      "Bash(cp -r mkpolis-temp/package.json mkpolis-temp/package-lock.json mkpolis-temp/postcss.config.mjs mkpolis-temp/tsconfig.json mkpolis-temp/public mkpolis-temp/src .)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
