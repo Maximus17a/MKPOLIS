@@ -58,6 +58,9 @@ export interface Database {
           turn_order: number;
           color: string;
           version: number;
+          active_quest_id: string | null;
+          quest_progress: number;
+          boss_immunity: boolean;
         };
         Insert: {
           id?: string;
@@ -118,6 +121,34 @@ export interface Database {
           is_used?: boolean;
         };
       };
+      trade_offers: {
+        Row: {
+          id: string;
+          game_id: string;
+          sender_id: string;
+          receiver_id: string;
+          offered_money: number;
+          requested_money: number;
+          offered_properties: number[];
+          requested_properties: number[];
+          status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          game_id: string;
+          sender_id: string;
+          receiver_id: string;
+          offered_money?: number;
+          requested_money?: number;
+          offered_properties?: number[];
+          requested_properties?: number[];
+          status?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+        };
+        Update: {
+          status?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+        };
+      };
       game_logs: {
         Row: {
           id: string;
@@ -146,4 +177,5 @@ export type Player = Database['public']['Tables']['players']['Row'];
 export type Property = Database['public']['Tables']['properties']['Row'];
 export type PlayerCard = Database['public']['Tables']['player_cards']['Row'];
 export type GameLog = Database['public']['Tables']['game_logs']['Row'];
+export type TradeOffer = Database['public']['Tables']['trade_offers']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];

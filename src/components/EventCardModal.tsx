@@ -1,0 +1,130 @@
+'use client';
+
+import { motion, AnimatePresence } from 'framer-motion';
+import type { GameEvent, SideQuest } from '@/lib/game/events-data';
+
+interface EventCardModalProps {
+  event: GameEvent | null;
+  onClose: () => void;
+}
+
+export default function EventCardModal({ event, onClose }: EventCardModalProps) {
+  if (!event) return null;
+
+  const isBoss = event.type === 'boss_fight';
+  const isQuest = event.type === 'side_quest';
+  const quest = isQuest ? (event as SideQuest) : null;
+
+  const headerBg = isBoss
+    ? 'linear-gradient(135deg, #1a0000, #4a0000)'
+    : 'linear-gradient(135deg, #001a33, #003366)';
+  const borderColor = isBoss ? 'border-red-500/40' : 'border-cyan-500/40';
+  const glowColor = isBoss ? '#ff000033' : '#00bfff33';
+  const labelBg = isBoss ? 'bg-red-900/40 text-red-300' : 'bg-cyan-900/40 text-cyan-300';
+  const labelText = isBoss ? 'BOSS FIGHT' : 'MISIÓN SECUNDARIA';
+  const btnBg = isBoss
+    ? 'bg-red-800/60 hover:bg-red-700/60 border-red-500/40 text-red-200'
+    : 'bg-cyan-800/60 hover:bg-cyan-700/60 border-cyan-500/40 text-cyan-200';
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        {/* 3D card flip entry */}
+        <motion.div
+          className={`relative w-80 rounded-2xl overflow-hidden border ${borderColor} shadow-2xl`}
+          style={{
+            background: '#050d1a',
+            boxShadow: `0 0 60px ${glowColor}, 0 30px 80px rgba(0,0,0,0.6)`,
+            transformStyle: 'preserve-3d',
+          }}
+          initial={{ scale: 0.5, rotateY: -180, opacity: 0 }}
+          animate={{ scale: 1, rotateY: 0, opacity: 1 }}
+          exit={{ scale: 0.6, rotateY: 90, opacity: 0 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div
+            className="px-6 pt-8 pb-6 text-center"
+            style={{ background: headerBg }}
+          >
+            {/* Type label */}
+            <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4 ${labelBg}`}>
+              {labelText}
+            </span>
+
+            {/* Icon */}
+            <motion.div
+              className="text-6xl mb-3"
+              animate={
+                isBoss
+                  ? { scale: [1, 1.2, 1], rotate: [0, -5, 5, 0] }
+                  : { scale: [1, 1.1, 1] }
+              }
+              transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 2 }}
+            >
+              {event.icon}
+            </motion.div>
+
+            <h2 className="text-lg font-black text-white leading-tight px-2">
+              {event.title}
+            </h2>
+          </div>
+
+          {/* Body */}
+          <div className="p-5 space-y-4">
+            <p className="text-sm text-cyan-100/80 leading-relaxed">
+              {event.description}
+            </p>
+
+            {/* Quest details */}
+            {quest && (
+              <div className="space-y-2 pt-1 border-t border-cyan-900/30">
+                {quest.immediateCost && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-red-400">💸</span>
+                    <span className="text-red-300">Coste inmediato: -${quest.immediateCost}</span>
+                  </div>
+                )}
+                {quest.rewardAmount > 0 && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-green-400">💰</span>
+                    <span className="text-green-300">Recompensa: +${quest.rewardAmount}</span>
+                  </div>
+                )}
+                {quest.penaltyAmount > 0 && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-red-400">⚠️</span>
+                    <span className="text-red-300">Penalización por fallo: -${quest.penaltyAmount}</span>
+                  </div>
+                )}
+                {quest.progressTurns > 0 && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-yellow-400">⏳</span>
+                    <span className="text-yellow-300">Duración: {quest.progressTurns} turno(s)</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dismiss button */}
+            <motion.button
+              onClick={onClose}
+              className={`w-full py-3 rounded-xl border font-bold text-sm transition-colors ${btnBg}`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {isBoss ? '¡Afrontar el destino!' : '¡Aceptar la misión!'}
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}

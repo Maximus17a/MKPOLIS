@@ -13,6 +13,37 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Not your turn' }, { status: 403 });
     }
 
+    // ── Evaluate quest_valorant_clutch progress ──
+    const { data: player } = await db.from('players').select('*').eq('id', playerId).single();
+    if (player?.active_quest_id === 'quest_valorant_clutch') {
+      const newProgress = player.quest_progress - 1;
+      if (newProgress <= 0) {
+        // Quest completed!
+        await occUpdate(db, 'players', player.id, player.version, {
+          active_quest_id: null,
+          quest_progress: 0,
+          balance: player.balance + 400,
+        });
+        await db.from('game_logs').insert({
+          game_id: gameId,
+          player_id: playerId,
+          message: '¡Quest "Clutch en Valorant" completada! Ganas $400.',
+          action_type: 'power_card',
+        });
+      } else {
+        await occUpdate(db, 'players', player.id, player.version, {
+          quest_progress: newProgress,
+        });
+        await db.from('game_logs').insert({
+          game_id: gameId,
+          player_id: playerId,
+          message: `Quest "Clutch en Valorant": ${newProgress} turno(s) restante(s).`,
+          action_type: 'power_card',
+        });
+      }
+    }
+
+    // ── Advance to next player ──
     const { data: activePlayers } = await db
       .from('players')
       .select('*')

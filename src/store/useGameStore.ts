@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import type { Game, Player, Property, PlayerCard, GameLog, Profile } from '@/lib/database.types';
+import type { GameEvent } from '@/lib/game/events-data';
 
 // Snapshot for OCC rollback
 interface GameSnapshot {
@@ -31,6 +32,8 @@ interface GameState {
   doublesCount: number;
   showPropertyCard: number | null; // property_index or null
   chatOpen: boolean;
+  activeEvent: GameEvent | null;
+  pendingRent: { amount: number; ownerId: string; tileName: string } | null;
 
   // Actions — State setters (called by Realtime subscription as source of truth)
   setGame: (game: Game) => void;
@@ -57,6 +60,8 @@ interface GameState {
   setDoublesCount: (count: number) => void;
   setShowPropertyCard: (index: number | null) => void;
   toggleChat: () => void;
+  setActiveEvent: (event: GameEvent | null) => void;
+  setPendingRent: (rent: { amount: number; ownerId: string; tileName: string } | null) => void;
 
   // Derived
   currentPlayer: () => Player | undefined;
@@ -82,6 +87,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   doublesCount: 0,
   showPropertyCard: null,
   chatOpen: false,
+  activeEvent: null,
+  pendingRent: null,
 
   // ─── Realtime setters (source of truth) ───
   setGame: (game) => set({ game }),
@@ -164,6 +171,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   setDoublesCount: (count) => set({ doublesCount: count }),
   setShowPropertyCard: (index) => set({ showPropertyCard: index }),
   toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
+  setActiveEvent: (event) => set({ activeEvent: event }),
+  setPendingRent: (rent) => set({ pendingRent: rent }),
 
   // ─── Derived ───
   currentPlayer: () => {

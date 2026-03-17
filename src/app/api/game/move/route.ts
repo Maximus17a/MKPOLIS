@@ -59,9 +59,27 @@ export async function POST(req: NextRequest) {
           await db.from('game_logs').insert({
             game_id: gameId,
             player_id: playerId,
-            message: `Pagó ${resolvedRent} de alquiler en ${tile.name}.`,
+            message: `Pagó $${resolvedRent} de alquiler en ${tile.name}.`,
             action_type: 'rent',
           });
+
+          // quest_valorant_clutch fails if rent is paid
+          if (player.active_quest_id === 'quest_valorant_clutch') {
+            const { data: fpForQuest } = await db.from('players').select('*').eq('id', playerId).single();
+            if (fpForQuest) {
+              await occUpdate(db, 'players', fpForQuest.id, fpForQuest.version, {
+                active_quest_id: null,
+                quest_progress: 0,
+                balance: fpForQuest.balance - 100,
+              });
+              await db.from('game_logs').insert({
+                game_id: gameId,
+                player_id: playerId,
+                message: 'Quest "Clutch en Valorant" fallida! (pagó renta) -$100.',
+                action_type: 'power_card',
+              });
+            }
+          }
         }
       }
     }

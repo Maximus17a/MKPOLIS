@@ -11,7 +11,7 @@ interface ActionBarProps {
 }
 
 export default function ActionBar({ onBuy, onEndTurn, onUsePower }: ActionBarProps) {
-  const { game, myPlayer, isMyTurn, properties, cards, myPlayerId, players, getPlayerName } = useGameStore();
+  const { game, myPlayer, isMyTurn, properties, cards, myPlayerId, players, getPlayerName, pendingRent } = useGameStore();
 
   const player = myPlayer();
   if (!player || !game) return null;
@@ -27,7 +27,7 @@ export default function ActionBar({ onBuy, onEndTurn, onUsePower }: ActionBarPro
     currentTile.price &&
     player.balance >= currentTile.price;
 
-  const canEndTurn = isMyTurn() && game.turn_phase === 'action';
+  const canEndTurn = isMyTurn() && game.turn_phase === 'action' && !pendingRent;
 
   const myCards = cards.filter((c) => c.player_id === myPlayerId && !c.is_used);
 

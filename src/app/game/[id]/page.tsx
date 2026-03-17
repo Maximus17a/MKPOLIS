@@ -15,6 +15,13 @@ import ActionBar from '@/components/ActionBar';
 import EmotePanel from '@/components/EmotePanel';
 import EmoteBubble from '@/components/EmoteBubble';
 import ChatPanel from '@/components/ChatPanel';
+import MyPropertiesPanel from '@/components/MyPropertiesPanel';
+import EventCardModal from '@/components/EventCardModal';
+import BossChoiceModal from '@/components/BossChoiceModal';
+import DebtModal from '@/components/DebtModal';
+import TradePanel from '@/components/TradePanel';
+import TradeOfferModal from '@/components/TradeOfferModal';
+import RentModal from '@/components/RentModal';
 
 export default function GamePage() {
   const params = useParams();
@@ -67,6 +74,7 @@ export default function GamePage() {
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [starting, setStarting] = useState(false);
+  const [bossChoice, setBossChoice] = useState(false);
 
   const handleStartGame = useCallback(async () => {
     if (starting) return;
@@ -112,6 +120,22 @@ export default function GamePage() {
       }
       // Track doubles count for re-roll logic
       store.setDoublesCount(data.doublesCount ?? 0);
+      // Show event card modal (quest or boss fight)
+      if (data.event) {
+        store.setActiveEvent(data.event);
+      }
+      // Check if boss requires player choice
+      if (data.landingEffect?.startsWith('BOSS_CHOICE:')) {
+        setBossChoice(true);
+      }
+      // Check if rent is owed
+      if (data.rentOwed) {
+        store.setPendingRent({
+          amount: data.rentOwed.amount,
+          ownerId: data.rentOwed.ownerId,
+          tileName: data.rentOwed.tileName,
+        });
+      }
       // Realtime will sync the authoritative state
     } catch {
       store.rollbackToSnapshot();
@@ -174,6 +198,28 @@ export default function GamePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ gameId, playerId: player.id, cardId, targetPlayerId }),
+        });
+
+        if (res.status === 409) {
+          store.rollbackToSnapshot();
+        }
+      } catch {
+        store.rollbackToSnapshot();
+      }
+    },
+    [gameId, store]
+  );
+
+  const handleUpgrade = useCallback(
+    async (propertyIndex: number) => {
+      const player = store.myPlayer();
+      if (!player) return;
+
+      try {
+        const res = await fetch('/api/game/upgrade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId, playerId: player.id, propertyIndex }),
         });
 
         if (res.status === 409) {
@@ -327,6 +373,8 @@ export default function GamePage() {
         {/* Left Panel — Players */}
         <div className="w-80 p-4 border-r border-cyan-900/20 overflow-y-auto bg-slate-950/80 backdrop-blur">
           <PlayerPanel />
+          <MyPropertiesPanel gameId={gameId} onUpgrade={handleUpgrade} />
+          <TradePanel gameId={gameId} />
         </div>
 
         {/* Center — Board + Dice + Actions */}
@@ -353,6 +401,30 @@ export default function GamePage() {
 
       {/* Floating emote bubbles */}
       <EmoteBubble />
+
+      {/* Event Card Modal (quest / boss fight) */}
+      <EventCardModal
+        event={store.activeEvent}
+        onClose={() => store.setActiveEvent(null)}
+      />
+
+      {/* Boss choice modal (e.g., botlane duo) */}
+      {bossChoice && store.myPlayerId && (
+        <BossChoiceModal
+          gameId={gameId}
+          playerId={store.myPlayerId}
+          onClose={() => setBossChoice(false)}
+        />
+      )}
+
+      {/* Rent payment modal */}
+      <RentModal gameId={gameId} />
+
+      {/* Debt modal (negative balance) */}
+      <DebtModal gameId={gameId} />
+
+      {/* Trade offer modal (incoming offers) */}
+      <TradeOfferModal gameId={gameId} />
 
       {/* Floating Property Card */}
       <PropertyCard />

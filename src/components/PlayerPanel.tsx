@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
 import { BOARD_TILES } from '@/data/board';
+import { getEventById } from '@/lib/game/events-data';
 
 export default function PlayerPanel() {
   const { players, game, myPlayerId, properties, getPlayerName } = useGameStore();
@@ -100,6 +101,14 @@ export default function PlayerPanel() {
                     ⚡ Stun ({player.stun_turns_remaining})
                   </span>
                 )}
+                {player.active_quest_id && (() => {
+                  const ev = getEventById(player.active_quest_id);
+                  return ev ? (
+                    <span className="text-yellow-400 text-[10px]" title={ev.description}>
+                      {ev.icon} {player.quest_progress > 0 ? `(${player.quest_progress})` : ''}
+                    </span>
+                  ) : null;
+                })()}
               </div>
 
               {/* Owned properties mini-bar */}

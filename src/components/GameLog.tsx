@@ -30,6 +30,12 @@ export default function GameLog() {
     start: 'text-cyan-400',
     end_turn: 'text-cyan-500/40',
     emote: 'text-white',
+    upgrade: 'text-cyan-300',
+    boss_fight: 'text-red-400',
+    power_card: 'text-yellow-400',
+    trade: 'text-purple-400',
+    mortgage: 'text-yellow-500',
+    sell: 'text-orange-400',
   };
 
   return (
