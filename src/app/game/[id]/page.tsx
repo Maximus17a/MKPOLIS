@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
@@ -75,6 +75,7 @@ export default function GamePage() {
 
   const [starting, setStarting] = useState(false);
   const [bossChoice, setBossChoice] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
 
   const handleStartGame = useCallback(async () => {
     if (starting) return;
@@ -85,7 +86,6 @@ export default function GamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameId, hostUserId: store.myUserId }),
       });
-      const supabase = (await import('@/lib/supabase-client')).createClient();
       if (res.ok) {
         // Fallback poll in case realtime WebSocket is not delivering the update
         const poll = setInterval(async () => {
@@ -111,7 +111,7 @@ export default function GamePage() {
     } finally {
       setStarting(false);
     }
-  }, [gameId, store.myUserId, starting, store]);
+  }, [gameId, store, starting, supabase]);
 
   // ─── API Call Wrappers with Optimistic Updates ───
 
