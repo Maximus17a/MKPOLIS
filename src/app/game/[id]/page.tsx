@@ -85,7 +85,18 @@ export default function GamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameId, hostUserId: store.myUserId }),
       });
-      if (!res.ok) {
+      if (res.ok) {
+        // Fallback poll in case realtime WebSocket is not delivering the update
+        const supabase = (await import('@/lib/supabase-client')).createClient();
+        const poll = setInterval(async () => {
+          const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
+          if (game && game.status !== 'waiting') {
+            store.setGame(game);
+            clearInterval(poll);
+          }
+        }, 1000);
+        setTimeout(() => clearInterval(poll), 10000);
+      } else {
         const data = await res.json();
         console.error('Start failed:', data.error);
       }
@@ -94,7 +105,7 @@ export default function GamePage() {
     } finally {
       setStarting(false);
     }
-  }, [gameId, store.myUserId, starting]);
+  }, [gameId, store.myUserId, starting, store]);
 
   // ─── API Call Wrappers with Optimistic Updates ───
 
