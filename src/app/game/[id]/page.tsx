@@ -85,9 +85,9 @@ export default function GamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameId, hostUserId: store.myUserId }),
       });
+      const supabase = (await import('@/lib/supabase-client')).createClient();
       if (res.ok) {
         // Fallback poll in case realtime WebSocket is not delivering the update
-        const supabase = (await import('@/lib/supabase-client')).createClient();
         const poll = setInterval(async () => {
           const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
           if (game && game.status !== 'waiting') {
@@ -98,7 +98,13 @@ export default function GamePage() {
         setTimeout(() => clearInterval(poll), 10000);
       } else {
         const data = await res.json();
-        console.error('Start failed:', data.error);
+        // If already started, fetch current state and update store (realtime may have missed it)
+        if (data.error === 'Game already started') {
+          const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
+          if (game) store.setGame(game);
+        } else {
+          console.error('Start failed:', data.error);
+        }
       }
     } catch (err) {
       console.error('Start failed:', err);
