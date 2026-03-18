@@ -135,6 +135,10 @@ export default function GamePage() {
       if (data.dice) {
         store.setDiceResult(data.dice);
       }
+      // Update turn_phase locally so dice button disables immediately (no wait for realtime)
+      if (store.game) {
+        store.setGame({ ...store.game, turn_phase: data.isDoubles ? 'roll' : 'action' });
+      }
       // Track doubles count for re-roll logic
       store.setDoublesCount(data.doublesCount ?? 0);
       // Show event card modal (quest or boss fight)

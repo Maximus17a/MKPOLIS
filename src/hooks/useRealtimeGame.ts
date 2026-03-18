@@ -17,6 +17,28 @@ export function useRealtimeGame(gameId: string | null) {
     if (!gameId) return;
     const supabase = createClient();
 
+    let pollingInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (pollingInterval) return;
+      pollingInterval = setInterval(async () => {
+        const [{ data: game }, { data: players }, { data: properties }, { data: logs }] =
+          await Promise.all([
+            supabase.from('games').select('*').eq('id', gameId).single(),
+            supabase.from('players').select('*').eq('game_id', gameId).order('turn_order'),
+            supabase.from('properties').select('*').eq('game_id', gameId),
+            supabase.from('game_logs').select('*').eq('game_id', gameId).order('created_at').limit(50),
+          ]);
+        if (game) { store.setGame(game); store.clearOptimistic(); }
+        if (players) players.forEach((p) => store.updatePlayer(p as Player));
+        if (properties) properties.forEach((p) => store.updateProperty(p as Property));
+        if (logs) {
+          const currentLogIds = new Set(useGameStore.getState().logs.map((l) => l.id));
+          (logs as GameLog[]).forEach((l) => { if (!currentLogIds.has(l.id)) store.addLog(l); });
+        }
+      }, 3000);
+    };
+
     const channel = supabase
       .channel(`game:${gameId}`)
       // Games table
@@ -72,10 +94,16 @@ export function useRealtimeGame(gameId: string | null) {
           store.addLog(payload.new as GameLog);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // If WebSocket fails, fall back to polling every 3 seconds
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          startPolling();
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
+      if (pollingInterval) clearInterval(pollingInterval);
     };
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -111,7 +111,7 @@ export default function LobbyPage() {
         body: JSON.stringify({ gameId, userId }),
       });
       const data = await res.json();
-      if (data.playerId || data.error === 'Already in this game') {
+      if (data.playerId || data.error === 'Already in this game' || data.error === 'Game already started') {
         router.push(`/game/${gameId}`);
       }
     } catch (err) {
