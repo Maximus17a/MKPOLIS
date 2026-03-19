@@ -158,7 +158,9 @@ export default function GamePage() {
         store.setDiceResult(data.dice);
       }
       // Update turn_phase locally so dice button disables immediately (no wait for realtime)
-      if (store.game) {
+      // Skip for stunned/jail cases — the server already advanced the turn to the next player,
+      // so updating locally to 'action' would wrongly trigger the auto-end-turn timer.
+      if (store.game && !data.stunned && !data.inJail && !data.jailPaid) {
         store.setGame({ ...store.game, turn_phase: data.isDoubles ? 'roll' : 'action' });
       }
       // Track doubles count for re-roll logic
