@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { useGameStore } from '@/store/useGameStore';
+import { getEventById } from '@/lib/game/events-data';
 import type { Player, Property, GameLog } from '@/lib/database.types';
 
 /**
@@ -27,6 +28,8 @@ export function useRealtimeGame(gameId: string | null) {
       const s = useGameStore.getState();
 
       if (game) {
+        const prevTurnPlayerId = s.game?.current_turn_player_id;
+
         // Auto-clear pendingRent when turn changes away from us
         if (s.pendingRent && game.current_turn_player_id !== s.myPlayerId) {
           useGameStore.setState({ pendingRent: null });
@@ -35,12 +38,29 @@ export function useRealtimeGame(gameId: string | null) {
         if (s.dicePrediction && game.current_turn_player_id !== s.myPlayerId) {
           useGameStore.setState({ dicePrediction: null });
         }
+        // Clear spectator event when the active player's turn ends
+        if (s.spectatorEvent && prevTurnPlayerId !== game.current_turn_player_id) {
+          useGameStore.setState({ spectatorEvent: null });
+        }
         s.setGame(game);
         s.clearOptimistic();
       }
 
       if (players) {
-        players.forEach((p) => useGameStore.getState().updatePlayer(p as Player));
+        const store = useGameStore.getState();
+        const currentPlayerIds = new Set(store.players.map((p) => p.id));
+        const hasNewPlayers = (players as Player[]).some((p) => !currentPlayerIds.has(p.id));
+
+        // Replace full list so newly joined players appear immediately
+        store.setPlayers(players as Player[]);
+
+        // Re-fetch profiles when someone new joins (waiting room / mid-game join)
+        if (hasNewPlayers) {
+          const userIds = (players as Player[]).map((p) => p.user_id);
+          supabase.from('profiles').select('*').in('id', userIds).then(({ data: profiles }) => {
+            if (profiles) useGameStore.getState().setProfiles(profiles);
+          });
+        }
       }
 
       if (properties) {
@@ -48,7 +68,19 @@ export function useRealtimeGame(gameId: string | null) {
       }
 
       if (logs) {
-        const currentLogIds = new Set(useGameStore.getState().logs.map((l) => l.id));
+        const s = useGameStore.getState();
+        const currentLogIds = new Set(s.logs.map((l) => l.id));
+
+        // Spectator event detection — show event modal for players who aren't rolling
+        const newEventLogs = (logs as GameLog[]).filter(
+          (l) => l.action_type === 'event_shown' && !currentLogIds.has(l.id)
+        );
+        if (newEventLogs.length > 0 && s.game?.current_turn_player_id !== s.myPlayerId) {
+          const latest = newEventLogs[newEventLogs.length - 1];
+          const event = getEventById(latest.message);
+          if (event) useGameStore.setState({ spectatorEvent: event });
+        }
+
         (logs as GameLog[]).forEach((l) => {
           if (!currentLogIds.has(l.id)) useGameStore.getState().addLog(l);
         });

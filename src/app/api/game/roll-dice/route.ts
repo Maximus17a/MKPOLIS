@@ -295,6 +295,12 @@ export async function POST(req: NextRequest) {
 
     const doublesMsg = isDoubles ? ' DOBLES! Tira de nuevo.' : '';
     const logMsg = `Tiró ${dice1}+${dice2}=${total}. Avanza a ${tile.name}.${passedGo ? ' (+200 por SALIDA)' : ''}${saveRexyReward ? ` (+300 Rexy)` : ''}${landingEffect ? ' ' + landingEffect : ''}${doublesMsg}`;
+
+    // Broadcast drawn event to all players via a dedicated log so others can show spectator modal
+    if (drawnEvent) {
+      await log(db, gameId, playerId, drawnEvent.id, 'event_shown');
+    }
+
     await log(db, gameId, playerId, logMsg, 'roll');
 
     return Response.json({

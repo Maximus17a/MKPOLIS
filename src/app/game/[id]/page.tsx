@@ -77,6 +77,13 @@ export default function GamePage() {
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [starting, setStarting] = useState(false);
+
+  // Auto-close spectator event after 6s (spectators have no action to take)
+  useEffect(() => {
+    if (!store.spectatorEvent) return;
+    const t = setTimeout(() => store.setSpectatorEvent(null), 6000);
+    return () => clearTimeout(t);
+  }, [store.spectatorEvent]); // eslint-disable-line react-hooks/exhaustive-deps
   const [bossChoice, setBossChoice] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
@@ -447,7 +454,7 @@ export default function GamePage() {
       {/* Floating emote bubbles */}
       <EmoteBubble />
 
-      {/* Event Card Modal (quest / boss fight) */}
+      {/* Event Card Modal (quest / boss fight) — active player */}
       <EventCardModal
         event={store.activeEvent}
         onClose={() => store.setActiveEvent(null)}
@@ -456,6 +463,20 @@ export default function GamePage() {
           store.setActiveEvent(null);
         }}
       />
+
+      {/* Event Card Modal — spectator view for other players */}
+      {(() => {
+        const currentPlayer = store.currentPlayer();
+        const spectatorName = currentPlayer ? store.getPlayerName(currentPlayer) : undefined;
+        return (
+          <EventCardModal
+            event={store.spectatorEvent}
+            onClose={() => store.setSpectatorEvent(null)}
+            spectator
+            playerName={spectatorName}
+          />
+        );
+      })()}
 
       {/* Boss choice modal (e.g., botlane duo) */}
       {bossChoice && store.myPlayerId && (

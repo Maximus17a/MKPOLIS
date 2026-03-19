@@ -33,6 +33,7 @@ interface GameState {
   showPropertyCard: number | null; // property_index or null
   chatOpen: boolean;
   activeEvent: GameEvent | null;
+  spectatorEvent: GameEvent | null;
   pendingRent: { amount: number; ownerId: string; tileName: string } | null;
   dicePrediction: 'even' | 'odd' | null;
 
@@ -62,6 +63,7 @@ interface GameState {
   setShowPropertyCard: (index: number | null) => void;
   toggleChat: () => void;
   setActiveEvent: (event: GameEvent | null) => void;
+  setSpectatorEvent: (event: GameEvent | null) => void;
   setPendingRent: (rent: { amount: number; ownerId: string; tileName: string } | null) => void;
   setDicePrediction: (prediction: 'even' | 'odd' | null) => void;
 
@@ -90,6 +92,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   showPropertyCard: null,
   chatOpen: false,
   activeEvent: null,
+  spectatorEvent: null,
   pendingRent: null,
   dicePrediction: null,
 
@@ -175,6 +178,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   setShowPropertyCard: (index) => set({ showPropertyCard: index }),
   toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
   setActiveEvent: (event) => set({ activeEvent: event }),
+  setSpectatorEvent: (event) => set({ spectatorEvent: event }),
   setPendingRent: (rent) => set({ pendingRent: rent }),
   setDicePrediction: (prediction) => set({ dicePrediction: prediction }),
 
