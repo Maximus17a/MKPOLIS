@@ -17,93 +17,104 @@ export function useRealtimeGame(gameId: string | null) {
     if (!gameId) return;
     const supabase = createClient();
 
-    let pollingInterval: ReturnType<typeof setInterval> | null = null;
-
-    const startPolling = () => {
-      if (pollingInterval) return;
-      pollingInterval = setInterval(async () => {
-        const [{ data: game }, { data: players }, { data: properties }, { data: logs }] =
-          await Promise.all([
-            supabase.from('games').select('*').eq('id', gameId).single(),
-            supabase.from('players').select('*').eq('game_id', gameId).order('turn_order'),
-            supabase.from('properties').select('*').eq('game_id', gameId),
-            supabase.from('game_logs').select('*').eq('game_id', gameId).order('created_at').limit(50),
-          ]);
-        if (game) { store.setGame(game); store.clearOptimistic(); }
-        if (players) players.forEach((p) => store.updatePlayer(p as Player));
-        if (properties) properties.forEach((p) => store.updateProperty(p as Property));
-        if (logs) {
-          const currentLogIds = new Set(useGameStore.getState().logs.map((l) => l.id));
-          (logs as GameLog[]).forEach((l) => { if (!currentLogIds.has(l.id)) store.addLog(l); });
+    const poll = async () => {
+      const [{ data: game }, { data: players }, { data: properties }, { data: logs }] =
+        await Promise.all([
+          supabase.from('games').select('*').eq('id', gameId).single(),
+          supabase.from('players').select('*').eq('game_id', gameId).order('turn_order'),
+          supabase.from('properties').select('*').eq('game_id', gameId),
+          supabase.from('game_logs').select('*').eq('game_id', gameId).order('created_at').limit(100),
+        ]);
+      if (game) {
+        const s = useGameStore.getState();
+        // Auto-clear pendingRent when turn changes away from us
+        if (s.pendingRent && game.current_turn_player_id !== s.myPlayerId) {
+          useGameStore.setState({ pendingRent: null });
         }
-      }, 3000);
+        s.setGame(game);
+        s.clearOptimistic();
+      }
+      if (players) {
+        players.forEach((p) => useGameStore.getState().updatePlayer(p as Player));
+      }
+      if (properties) {
+        properties.forEach((p) => useGameStore.getState().updateProperty(p as Property));
+      }
+      if (logs) {
+        const currentLogIds = new Set(useGameStore.getState().logs.map((l) => l.id));
+        (logs as GameLog[]).forEach((l) => {
+          if (!currentLogIds.has(l.id)) useGameStore.getState().addLog(l);
+        });
+      }
     };
 
+    // Always poll every 2s — primary sync mechanism (WebSocket is bonus)
+    const pollingInterval = setInterval(poll, 2000);
+
+    // Also subscribe to realtime for lower-latency updates when WebSocket works
     const channel = supabase
       .channel(`game:${gameId}`)
-      // Games table
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
         (payload) => {
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-            store.setGame(payload.new as Game);
-            store.clearOptimistic();
+            const s = useGameStore.getState();
+            const newGame = payload.new as Game;
+            if (s.pendingRent && newGame.current_turn_player_id !== s.myPlayerId) {
+              useGameStore.setState({ pendingRent: null });
+            }
+            s.setGame(newGame);
+            s.clearOptimistic();
           }
         }
       )
-      // Players table
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'players', filter: `game_id=eq.${gameId}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newPlayer = payload.new as Player;
-            const exists = store.players.some((p) => p.id === newPlayer.id);
+            const exists = useGameStore.getState().players.some((p) => p.id === newPlayer.id);
             if (!exists) {
               useGameStore.setState((s) => ({ players: [...s.players, newPlayer] }));
             }
           } else if (payload.eventType === 'UPDATE') {
-            store.updatePlayer(payload.new as Player);
-            store.clearOptimistic();
+            useGameStore.getState().updatePlayer(payload.new as Player);
+            useGameStore.getState().clearOptimistic();
           }
         }
       )
-      // Properties table
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'properties', filter: `game_id=eq.${gameId}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newProp = payload.new as Property;
-            const exists = store.properties.some((p) => p.id === newProp.id);
+            const exists = useGameStore.getState().properties.some((p) => p.id === newProp.id);
             if (!exists) {
               useGameStore.setState((s) => ({ properties: [...s.properties, newProp] }));
             }
           } else if (payload.eventType === 'UPDATE') {
-            store.updateProperty(payload.new as Property);
-            store.clearOptimistic();
+            useGameStore.getState().updateProperty(payload.new as Property);
+            useGameStore.getState().clearOptimistic();
           }
         }
       )
-      // Game logs
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'game_logs', filter: `game_id=eq.${gameId}` },
         (payload) => {
-          store.addLog(payload.new as GameLog);
+          const log = payload.new as GameLog;
+          const exists = useGameStore.getState().logs.some((l) => l.id === log.id);
+          if (!exists) useGameStore.getState().addLog(log);
         }
       )
-      .subscribe((status) => {
-        // If WebSocket fails, fall back to polling every 3 seconds
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          startPolling();
-        }
-      });
+      .subscribe();
 
     return () => {
+      clearInterval(pollingInterval);
       supabase.removeChannel(channel);
-      if (pollingInterval) clearInterval(pollingInterval);
     };
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 }
