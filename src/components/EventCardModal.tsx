@@ -6,14 +6,16 @@ import type { GameEvent, SideQuest } from '@/lib/game/events-data';
 interface EventCardModalProps {
   event: GameEvent | null;
   onClose: () => void;
+  onPredict?: (prediction: 'even' | 'odd') => void;
 }
 
-export default function EventCardModal({ event, onClose }: EventCardModalProps) {
+export default function EventCardModal({ event, onClose, onPredict }: EventCardModalProps) {
   if (!event) return null;
 
   const isBoss = event.type === 'boss_fight';
   const isQuest = event.type === 'side_quest';
   const quest = isQuest ? (event as SideQuest) : null;
+  const needsPrediction = quest?.requiresPrediction === true;
 
   const headerBg = isBoss
     ? 'linear-gradient(135deg, #1a0000, #4a0000)'
@@ -26,6 +28,11 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
     ? 'bg-red-800/60 hover:bg-red-700/60 border-red-500/40 text-red-200'
     : 'bg-cyan-800/60 hover:bg-cyan-700/60 border-cyan-500/40 text-cyan-200';
 
+  const handleBackdrop = () => {
+    // Don't allow closing by backdrop if prediction is required
+    if (!needsPrediction) onClose();
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -33,9 +40,8 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleBackdrop}
       >
-        {/* 3D card flip entry */}
         <motion.div
           className={`relative w-80 rounded-2xl overflow-hidden border ${borderColor} shadow-2xl`}
           style={{
@@ -50,16 +56,10 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div
-            className="px-6 pt-8 pb-6 text-center"
-            style={{ background: headerBg }}
-          >
-            {/* Type label */}
+          <div className="px-6 pt-8 pb-6 text-center" style={{ background: headerBg }}>
             <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4 ${labelBg}`}>
               {labelText}
             </span>
-
-            {/* Icon */}
             <motion.div
               className="text-6xl mb-3"
               animate={
@@ -71,7 +71,6 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
             >
               {event.icon}
             </motion.div>
-
             <h2 className="text-lg font-black text-white leading-tight px-2">
               {event.title}
             </h2>
@@ -86,12 +85,12 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
             {/* Quest details */}
             {quest && (
               <div className="space-y-2 pt-1 border-t border-cyan-900/30">
-                {quest.immediateCost && (
+                {quest.immediateCost ? (
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-red-400">💸</span>
                     <span className="text-red-300">Coste inmediato: -${quest.immediateCost}</span>
                   </div>
-                )}
+                ) : null}
                 {quest.rewardAmount > 0 && (
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-green-400">💰</span>
@@ -113,15 +112,41 @@ export default function EventCardModal({ event, onClose }: EventCardModalProps) 
               </div>
             )}
 
-            {/* Dismiss button */}
-            <motion.button
-              onClick={onClose}
-              className={`w-full py-3 rounded-xl border font-bold text-sm transition-colors ${btnBg}`}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              {isBoss ? '¡Afrontar el destino!' : '¡Aceptar la misión!'}
-            </motion.button>
+            {/* Prediction buttons for skull_king */}
+            {needsPrediction && onPredict ? (
+              <div className="space-y-2 pt-1">
+                <p className="text-xs text-yellow-400 font-bold text-center uppercase tracking-widest">
+                  ¿Par o Impar? — Elige AHORA
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <motion.button
+                    onClick={() => onPredict('even')}
+                    className="py-3 rounded-xl border font-black text-sm bg-green-900/40 hover:bg-green-800/60 border-green-500/40 text-green-300"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    PAR 🎲
+                  </motion.button>
+                  <motion.button
+                    onClick={() => onPredict('odd')}
+                    className="py-3 rounded-xl border font-black text-sm bg-purple-900/40 hover:bg-purple-800/60 border-purple-500/40 text-purple-300"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    IMPAR 🎲
+                  </motion.button>
+                </div>
+              </div>
+            ) : (
+              <motion.button
+                onClick={onClose}
+                className={`w-full py-3 rounded-xl border font-bold text-sm transition-colors ${btnBg}`}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                {isBoss ? '¡Afrontar el destino!' : '¡Aceptar la misión!'}
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </motion.div>

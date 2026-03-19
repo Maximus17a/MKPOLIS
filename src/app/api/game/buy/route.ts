@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
     if (game.current_turn_player_id !== playerId) {
       return Response.json({ error: 'Not your turn' }, { status: 403 });
     }
-    if (game.turn_phase !== 'action') {
+    // Allow buying in 'action' phase or 'roll' phase (after rolling doubles and landing on new tile)
+    if (game.turn_phase !== 'action' && game.turn_phase !== 'roll') {
       return Response.json({ error: 'Cannot buy right now' }, { status: 400 });
     }
 

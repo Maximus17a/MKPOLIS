@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
+import { getEventById } from '@/lib/game/events-data';
 import { useRealtimeGame } from '@/hooks/useRealtimeGame';
 import { createClient } from '@/lib/supabase-client';
 import GameBoard from '@/components/GameBoard';
@@ -119,11 +120,23 @@ export default function GamePage() {
     const player = store.myPlayer();
     if (!player) return;
 
+    // If skull_king quest is active and no prediction made yet, show the prediction modal
+    if (player.active_quest_id === 'quest_skull_king' && !store.dicePrediction) {
+      const skullEvent = getEventById('quest_skull_king');
+      if (skullEvent) store.setActiveEvent(skullEvent);
+      return;
+    }
+
     try {
       const res = await fetch('/api/game/roll-dice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, playerId: player.id, doublesCount: store.doublesCount }),
+        body: JSON.stringify({
+          gameId,
+          playerId: player.id,
+          doublesCount: store.doublesCount,
+          dicePrediction: store.dicePrediction,
+        }),
       });
 
       if (res.status === 409) {
@@ -157,6 +170,8 @@ export default function GamePage() {
           tileName: data.rentOwed.tileName,
         });
       }
+      // Clear prediction after roll
+      store.setDicePrediction(null);
       // Realtime will sync the authoritative state
     } catch {
       store.rollbackToSnapshot();
@@ -427,6 +442,10 @@ export default function GamePage() {
       <EventCardModal
         event={store.activeEvent}
         onClose={() => store.setActiveEvent(null)}
+        onPredict={(pred) => {
+          store.setDicePrediction(pred);
+          store.setActiveEvent(null);
+        }}
       />
 
       {/* Boss choice modal (e.g., botlane duo) */}

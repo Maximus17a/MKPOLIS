@@ -10,7 +10,7 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const { gameId, playerId, doublesCount = 0 } = await req.json();
+    const { gameId, playerId, doublesCount = 0, dicePrediction } = await req.json();
     const db = createServiceClient();
 
     const [{ data: game }, { data: player }] = await Promise.all([
@@ -86,6 +86,22 @@ export async function POST(req: NextRequest) {
       return Response.json({ dice: [dice1, dice2], tripleDoubles: true, newPosition: 10, doublesCount: 0 });
     }
 
+    // ── Check quest_skull_king prediction ──
+    let skullKingCorrect = false;
+    let skullKingBonus = 0;
+    if (player.active_quest_id === 'quest_skull_king') {
+      const isEven = total % 2 === 0;
+      skullKingCorrect = (dicePrediction === 'even' && isEven) || (dicePrediction === 'odd' && !isEven);
+      if (skullKingCorrect) {
+        skullKingBonus = 200;
+        await log(db, gameId, playerId, `💀 Rey Calavera: ¡ADIVINASTE! (${dicePrediction === 'even' ? 'Par' : 'Impar'}, salió ${total}). ¡Avanzas a SALIDA +$200!`, 'power_card');
+      } else {
+        skullKingBonus = -100;
+        await log(db, gameId, playerId, `💀 Rey Calavera: Fallaste (apostaste ${dicePrediction === 'even' ? 'Par' : 'Impar'}, salió ${total}). -$100.`, 'power_card');
+      }
+      await db.from('players').update({ active_quest_id: null, quest_progress: 0 }).eq('id', playerId);
+    }
+
     // ── Check quest_pentakill before moving ──
     let pentakillResult: null | { won: boolean; stolen: number } = null;
     if (player.active_quest_id === 'quest_pentakill') {
@@ -127,9 +143,10 @@ export async function POST(req: NextRequest) {
 
     // ── Normal move ──
     const oldPos = player.position_index;
-    const newPos = (oldPos + total) % 40;
-    const passedGo = newPos < oldPos || (oldPos === 0 && total > 0);
-    let goBonus = passedGo ? 200 : 0;
+    // skull_king correct: override to SALIDA (0); wrong: normal move
+    const newPos = skullKingCorrect ? 0 : (oldPos + total) % 40;
+    const passedGo = skullKingCorrect ? (oldPos > 0) : (newPos < oldPos || (oldPos === 0 && total > 0));
+    let goBonus = (passedGo ? 200 : 0) + skullKingBonus;
 
     // ── quest_save_rexy: reward on passing GO ──
     let saveRexyReward = 0;
@@ -392,7 +409,6 @@ async function resolveBoss(
 
   } else if (bossId === 'boss_glados') {
     // Retrocede 3 casillas
-    const newGladosPos = (player.balance >= 0 ? ((await db.from('players').select('position_index').eq('id', playerId).single()).data?.position_index ?? 0) : 0);
     const { data: fpGlados } = await db.from('players').select('*').eq('id', playerId).single();
     if (fpGlados) {
       const retroPos = (fpGlados.position_index - 3 + 40) % 40;

@@ -10,6 +10,7 @@ export interface SideQuest {
   penaltyAmount: number;
   progressTurns: number; // how many turns to track (0 = resolves on next roll)
   immediateCost?: number; // deducted right when drawn
+  requiresPrediction?: boolean; // player must predict odd/even before rolling
 }
 
 export interface BossFight {
@@ -62,11 +63,12 @@ export const SIDE_QUESTS: SideQuest[] = [
     type: 'side_quest',
     title: 'La Apuesta del Rey Calavera',
     description:
-      'Predice tu suerte. En tu próximo turno, declara si sacarás par o impar. Si aciertas, avanzas a SALIDA y cobras $200. Si fallas, pagas $100.',
+      'Predice tu suerte. Declara AHORA si en tu próximo turno sacarás par o impar. Si aciertas, avanzas a SALIDA y cobras $200. Si fallas, pagas $100.',
     icon: '💀',
     rewardAmount: 200,
     penaltyAmount: 100,
-    progressTurns: 0, // resolves on next roll
+    progressTurns: 0,
+    requiresPrediction: true,
   },
   {
     id: 'quest_speedrun_luis',

@@ -34,6 +34,7 @@ interface GameState {
   chatOpen: boolean;
   activeEvent: GameEvent | null;
   pendingRent: { amount: number; ownerId: string; tileName: string } | null;
+  dicePrediction: 'even' | 'odd' | null;
 
   // Actions — State setters (called by Realtime subscription as source of truth)
   setGame: (game: Game) => void;
@@ -62,6 +63,7 @@ interface GameState {
   toggleChat: () => void;
   setActiveEvent: (event: GameEvent | null) => void;
   setPendingRent: (rent: { amount: number; ownerId: string; tileName: string } | null) => void;
+  setDicePrediction: (prediction: 'even' | 'odd' | null) => void;
 
   // Derived
   currentPlayer: () => Player | undefined;
@@ -89,6 +91,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   chatOpen: false,
   activeEvent: null,
   pendingRent: null,
+  dicePrediction: null,
 
   // ─── Realtime setters (source of truth) ───
   setGame: (game) => set({ game }),
@@ -173,6 +176,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
   setActiveEvent: (event) => set({ activeEvent: event }),
   setPendingRent: (rent) => set({ pendingRent: rent }),
+  setDicePrediction: (prediction) => set({ dicePrediction: prediction }),
 
   // ─── Derived ───
   currentPlayer: () => {

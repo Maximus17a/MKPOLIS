@@ -11,16 +11,18 @@ interface ActionBarProps {
 }
 
 export default function ActionBar({ onBuy, onEndTurn, onUsePower }: ActionBarProps) {
-  const { game, myPlayer, isMyTurn, properties, cards, myPlayerId, players, getPlayerName, pendingRent } = useGameStore();
+  const { game, myPlayer, isMyTurn, properties, cards, myPlayerId, players, getPlayerName, pendingRent, doublesCount, diceResult } = useGameStore();
 
   const player = myPlayer();
   if (!player || !game) return null;
 
   const currentTile = BOARD_TILES[player.position_index];
   const prop = properties.find((p) => p.property_index === player.position_index);
+  // Allow buying on 'action' phase OR right after rolling doubles (phase resets to 'roll' but player just landed)
+  const justRolledDoubles = game.turn_phase === 'roll' && doublesCount > 0 && diceResult !== null;
   const canBuy =
     isMyTurn() &&
-    game.turn_phase === 'action' &&
+    (game.turn_phase === 'action' || justRolledDoubles) &&
     isPropertyTile(currentTile) &&
     prop &&
     !prop.owner_id &&
