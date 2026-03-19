@@ -7,52 +7,31 @@ import { createClient } from '@/lib/supabase-client';
 import { BOARD_TILES, COLOR_MAP, type ColorGroup } from '@/data/board';
 import type { TradeOffer } from '@/lib/database.types';
 
-interface TradeOfferModalProps {
-  gameId: string;
-}
-
-export default function TradeOfferModal({ gameId }: TradeOfferModalProps) {
+export default function TradeOfferModal() {
   const { myPlayerId, players, getPlayerName } = useGameStore();
   const [offer, setOffer] = useState<TradeOffer | null>(null);
   const [responding, setResponding] = useState(false);
 
-  // Listen for pending trade offers addressed to me
+  // Poll for pending trade offers addressed to me (WebSocket/Realtime disabled — use polling like the rest of the app)
   useEffect(() => {
     if (!myPlayerId) return;
     const supabase = createClient();
 
-    const channel = supabase
-      .channel(`trades-${myPlayerId}`)
-      .on(
-        'postgres_changes' as 'system',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'trade_offers',
-          filter: `receiver_id=eq.${myPlayerId}`,
-        } as Record<string, string>,
-        (payload: { new: TradeOffer }) => {
-          if (payload.new.status === 'pending') {
-            setOffer(payload.new);
-          }
-        }
-      )
-      .subscribe();
+    const checkOffer = async () => {
+      const { data } = await supabase
+        .from('trade_offers')
+        .select('*')
+        .eq('receiver_id', myPlayerId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) setOffer(data);
+    };
 
-    // Also check for existing pending offers on mount
-    supabase
-      .from('trade_offers')
-      .select('*')
-      .eq('receiver_id', myPlayerId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) setOffer(data);
-      });
-
-    return () => { supabase.removeChannel(channel); };
+    checkOffer();
+    const interval = setInterval(checkOffer, 2000);
+    return () => clearInterval(interval);
   }, [myPlayerId]);
 
   const respond = async (accept: boolean) => {

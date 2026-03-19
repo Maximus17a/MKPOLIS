@@ -38,7 +38,8 @@
       "Bash(vercel --yes --name mkpolis-app --prod)",
       "Bash(vercel --prod)",
       "Bash(gh pr:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(find /c/Users/mauar/Downloads/MKPOLIS/src -name *useGameStore* -o -name *store* -type f)"
     ]
   }
 }

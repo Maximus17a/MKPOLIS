@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState, useMemo } from 'react';
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
@@ -28,6 +28,7 @@ export default function GamePage() {
   const params = useParams();
   const gameId = params.id as string;
   const store = useGameStore();
+  const endingTurnRef = useRef(false);
 
   // Subscribe to realtime updates
   useRealtimeGame(gameId);
@@ -204,8 +205,13 @@ export default function GamePage() {
   }, [gameId, store]);
 
   const handleEndTurn = useCallback(async () => {
+    if (endingTurnRef.current) return;
     const player = store.myPlayer();
     if (!player) return;
+
+    endingTurnRef.current = true;
+    // Optimistically set turn_phase to 'roll' so canEndTurn becomes false immediately
+    if (store.game) store.setGame({ ...store.game, turn_phase: 'roll' });
 
     try {
       const res = await fetch('/api/game/end-turn', {
@@ -221,6 +227,8 @@ export default function GamePage() {
       store.setDoublesCount(0);
     } catch {
       store.rollbackToSnapshot();
+    } finally {
+      endingTurnRef.current = false;
     }
   }, [gameId, store]);
 
@@ -464,7 +472,7 @@ export default function GamePage() {
       <DebtModal gameId={gameId} />
 
       {/* Trade offer modal (incoming offers) */}
-      <TradeOfferModal gameId={gameId} />
+      <TradeOfferModal />
 
       {/* Floating Property Card */}
       <PropertyCard />
