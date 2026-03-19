@@ -6,11 +6,11 @@ import { useGameStore } from '@/store/useGameStore';
 
 const DOT_POSITIONS: Record<number, [number, number][]> = {
   1: [[50, 50]],
-  2: [[25, 25], [75, 75]],
-  3: [[25, 25], [50, 50], [75, 75]],
-  4: [[25, 25], [75, 25], [25, 75], [75, 75]],
-  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
-  6: [[25, 25], [75, 25], [25, 50], [75, 50], [25, 75], [75, 75]],
+  2: [[30, 30], [70, 70]],
+  3: [[30, 30], [50, 50], [70, 70]],
+  4: [[30, 30], [70, 30], [30, 70], [70, 70]],
+  5: [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  6: [[30, 25], [70, 25], [30, 50], [70, 50], [30, 75], [70, 75]],
 };
 
 function DieFace({ value, rolling }: { value: number; rolling: boolean }) {
@@ -18,18 +18,14 @@ function DieFace({ value, rolling }: { value: number; rolling: boolean }) {
 
   return (
     <motion.div
-      className="relative w-16 h-16 rounded-xl border border-cyan-500/30 shadow-xl"
+      className="relative w-20 h-20 rounded-2xl border border-cyan-500/40"
       style={{
-        background: 'linear-gradient(135deg, #0a1628, #162040)',
-        boxShadow: '0 0 20px rgba(0, 255, 204, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
+        background: 'linear-gradient(145deg, #0d1f3c, #091525)',
+        boxShadow: '0 0 24px rgba(0, 255, 204, 0.18), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -1px 0 rgba(0,0,0,0.3)',
       }}
       animate={
         rolling
-          ? {
-              rotateX: [0, 360, 720],
-              rotateY: [0, 360, 720],
-              scale: [1, 1.2, 1],
-            }
+          ? { rotateX: [0, 360, 720], rotateY: [0, 360, 720], scale: [1, 1.15, 1] }
           : { rotateX: 0, rotateY: 0, scale: 1 }
       }
       transition={
@@ -41,13 +37,13 @@ function DieFace({ value, rolling }: { value: number; rolling: boolean }) {
       {dots.map(([x, y], i) => (
         <motion.div
           key={i}
-          className="absolute w-3 h-3 rounded-full"
+          className="absolute w-3.5 h-3.5 rounded-full"
           style={{
             left: `${x}%`,
             top: `${y}%`,
             transform: 'translate(-50%, -50%)',
-            background: 'radial-gradient(circle, #00ffcc, #00cc99)',
-            boxShadow: '0 0 6px rgba(0, 255, 204, 0.6)',
+            background: 'radial-gradient(circle at 35% 35%, #00ffcc, #00aa88)',
+            boxShadow: '0 0 8px rgba(0, 255, 204, 0.7)',
           }}
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -76,9 +72,9 @@ export default function DiceRoller({ onRoll, disabled }: DiceRollerProps) {
   }, [canRoll, onRoll]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4 w-full">
       {/* Dice */}
-      <div className="flex gap-4">
+      <div className="flex justify-center gap-5">
         <DieFace value={diceResult?.[0] ?? 1} rolling={isRolling} />
         <DieFace value={diceResult?.[1] ?? 1} rolling={isRolling} />
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
 import { getEventById } from '@/lib/game/events-data';
@@ -27,6 +27,7 @@ import RentModal from '@/components/RentModal';
 export default function GamePage() {
   const params = useParams();
   const gameId = params.id as string;
+  const router = useRouter();
   const store = useGameStore();
   const endingTurnRef = useRef(false);
 
@@ -394,12 +395,12 @@ export default function GamePage() {
               Jugador {winner.turn_order + 1} gana con ${winner.balance}
             </p>
           )}
-          <a
-            href="/"
+          <button
+            onClick={() => router.push('/')}
             className="inline-block mt-4 px-6 py-3 rounded-xl bg-cyan-600 text-white font-bold hover:bg-cyan-500"
           >
             Volver al Lobby
-          </a>
+          </button>
         </div>
       </div>
     );

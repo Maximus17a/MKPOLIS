@@ -25,18 +25,7 @@ export default function LobbyPage() {
 
     const supabase = createClient();
 
-    async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        setUserId(user.id);
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || null);
-        setUserAvatar(user.user_metadata?.avatar_url || null);
-      }
-
-      // Load waiting games
+    async function loadGames() {
       const { data: gamesData } = await supabase
         .from('games')
         .select('*')
@@ -56,10 +45,26 @@ export default function LobbyPage() {
         );
         setGames(enriched);
       }
+    }
+
+    async function init() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserId(user.id);
+        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || null);
+        setUserAvatar(user.user_metadata?.avatar_url || null);
+      }
+
+      await loadGames();
       setLoading(false);
     }
 
     init();
+    const interval = setInterval(loadGames, 3000);
+    return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSignIn = async () => {
