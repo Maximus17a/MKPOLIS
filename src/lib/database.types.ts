@@ -19,6 +19,7 @@ export interface Database {
           username?: string;
           avatar_url?: string | null;
         };
+        Relationships: [];
       };
       games: {
         Row: {
@@ -44,6 +45,7 @@ export interface Database {
           turn_phase?: 'roll' | 'action' | 'end';
           version?: number;
         };
+        Relationships: [];
       };
       players: {
         Row: {
@@ -79,6 +81,7 @@ export interface Database {
           stun_turns_remaining?: number;
           version?: number;
         };
+        Relationships: [];
       };
       properties: {
         Row: {
@@ -102,6 +105,7 @@ export interface Database {
           is_mortgaged?: boolean;
           version?: number;
         };
+        Relationships: [];
       };
       player_cards: {
         Row: {
@@ -120,6 +124,7 @@ export interface Database {
         Update: {
           is_used?: boolean;
         };
+        Relationships: [];
       };
       trade_offers: {
         Row: {
@@ -148,6 +153,7 @@ export interface Database {
         Update: {
           status?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
         };
+        Relationships: [];
       };
       game_logs: {
         Row: {
@@ -165,8 +171,15 @@ export interface Database {
           message: string;
           action_type: string;
         };
-        Update: never;
+        Update: Record<string, never>;
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
     };
   };
 }
