@@ -110,7 +110,7 @@ function BuildingIndicators({ serverLevel }: { serverLevel: number }) {
 
   if (serverLevel === 5) {
     return (
-      <div className="absolute top-[7px] left-1/2 -translate-x-1/2 z-[5]">
+      <div className="absolute top-[6px] sm:top-[7px] left-1/2 -translate-x-1/2 z-[5]">
         <DatacenterIcon />
       </div>
     );
@@ -118,7 +118,7 @@ function BuildingIndicators({ serverLevel }: { serverLevel: number }) {
 
   // 1-4 servers
   return (
-    <div className="absolute top-[7px] left-1/2 -translate-x-1/2 flex gap-[1px] z-[5]">
+    <div className="absolute top-[6px] sm:top-[7px] left-1/2 -translate-x-1/2 flex gap-[1px] z-[5]">
       {Array.from({ length: serverLevel }, (_, i) => (
         <ServerIcon key={i} delay={i} />
       ))}
@@ -156,7 +156,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
         relative border cursor-pointer
         flex flex-col items-center justify-center overflow-hidden
         transition-all duration-200
-        ${corner ? 'w-[56px] h-[56px] sm:w-[70px] sm:h-[70px] lg:w-[90px] lg:h-[90px]' : 'w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]'}
+        ${corner ? 'w-[38px] h-[38px] sm:w-[56px] sm:h-[56px] lg:w-[90px] lg:h-[90px]' : 'w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px]'}
         hover:z-10 hover:scale-110 hover:border-cyan-400/60
         ${hasBuildings ? 'border-cyan-500/30' : 'border-cyan-900/30'}
       `}
@@ -194,17 +194,17 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
 
       {/* Icon or Name — pushed down when buildings present */}
       <span
-        className={`text-[10px] text-center leading-tight px-1 text-cyan-100/80 font-medium ${
-          hasBuildings ? 'mt-4' : ''
+        className={`text-[6px] sm:text-[10px] text-center leading-tight px-0.5 sm:px-1 text-cyan-100/80 font-medium ${
+          hasBuildings ? 'mt-3 sm:mt-4' : ''
         }`}
       >
-        {tile.icon && <span className="text-sm block">{tile.icon}</span>}
-        <span className="block mt-0.5 truncate max-w-[60px]">{tile.name}</span>
+        {tile.icon && <span className="text-[10px] sm:text-sm block">{tile.icon}</span>}
+        <span className="block mt-0.5 truncate max-w-full sm:max-w-[60px]">{tile.name}</span>
       </span>
 
       {/* Price */}
       {tile.price && !hasBuildings && (
-        <span className="text-[8px] text-cyan-400/60 mt-0.5">${tile.price}</span>
+        <span className="hidden sm:block text-[8px] text-cyan-400/60 mt-0.5">${tile.price}</span>
       )}
 
       {/* Level badge for improved properties */}
@@ -217,7 +217,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
       {/* Ownership indicator */}
       {isOwned && ownerColor && (
         <div
-          className="absolute bottom-1 right-1 w-2 h-2 rounded-full shadow-lg"
+          className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shadow-lg"
           style={{ background: ownerColor, boxShadow: `0 0 6px ${ownerColor}` }}
         />
       )}
@@ -230,7 +230,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
             return piece ? (
               <motion.div
                 key={p.id}
-                className="w-4 h-4 flex items-center justify-center rounded-sm text-[9px] leading-none border"
+                className="w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center rounded-sm text-[7px] sm:text-[9px] leading-none border"
                 style={{
                   background: `${p.color}28`,
                   borderColor: `${p.color}80`,
@@ -244,7 +244,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
             ) : (
               <motion.div
                 key={p.id}
-                className="w-3 h-3 rounded-full border border-white/40 shadow-lg"
+                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-white/40 shadow-lg"
                 style={{ background: p.color, boxShadow: `0 0 8px ${p.color}` }}
                 layoutId={`token-${p.id}`}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -275,13 +275,11 @@ export default function GameBoard() {
   return (
     <div className="relative">
       <div
-        className="grid gap-0 mx-auto"
+        className="board-3d grid gap-0 mx-auto"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(11, auto)',
           gridTemplateRows: 'repeat(11, auto)',
-          transform: 'perspective(1200px) rotateX(25deg) rotateZ(-5deg)',
-          transformStyle: 'preserve-3d',
         }}
       >
         {Array.from({ length: 11 * 11 }, (_, i) => {
@@ -297,17 +295,17 @@ export default function GameBoard() {
             if (row >= 1 && row <= 9 && col >= 1 && col <= 9) {
               if (row === 5 && col === 5) {
                 return (
-                  <div key={i} className="w-[70px] h-[70px] flex items-center justify-center">
+                  <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px] flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-2xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                      <div className="text-[10px] sm:text-base lg:text-2xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
                         MK
                       </div>
-                      <div className="text-[8px] text-cyan-500/60 tracking-widest">POLIS</div>
+                      <div className="hidden sm:block text-[8px] text-cyan-500/60 tracking-widest">POLIS</div>
                     </div>
                   </div>
                 );
               }
-              return <div key={i} className="w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]" />;
+              return <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px]" />;
             }
             return <div key={i} className="w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]" />;
           }

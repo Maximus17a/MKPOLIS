@@ -74,11 +74,13 @@ export default function GamePage() {
       if (properties) store.setProperties(properties);
       if (logs) store.setLogs(logs);
       if (cards) store.setCards(cards);
+      setIsLoading(false);
     }
 
     loadGame();
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [isLoading, setIsLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [beginRolling, setBeginRolling] = useState(false);
   const [isPreRolling, setIsPreRolling] = useState(false);
@@ -339,6 +341,28 @@ export default function GamePage() {
     },
     [gameId, store]
   );
+
+  // ─── Loading screen (on page reload the store is empty until fetch completes) ───
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <motion.div
+          className="flex flex-col items-center gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div
+            className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+          >
+            MKpolis
+          </motion.div>
+          <p className="text-cyan-500/40 text-sm">Reconectando a la partida...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   // ─── Waiting Lobby + Pre-Roll ───
   const isHost = store.game?.host_id === store.myUserId;

@@ -38,3 +38,15 @@ body {
   background: rgba(6, 182, 212, 0.3);
   color: white;
 }
+
+/* Board 3D perspective — desktop only */
+.board-3d {
+  transform-style: flat;
+}
+
+@media (min-width: 1024px) {
+  .board-3d {
+    transform: perspective(1200px) rotateX(25deg) rotateZ(-5deg);
+    transform-style: preserve-3d;
+  }
+}

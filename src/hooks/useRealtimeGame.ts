@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { useGameStore } from '@/store/useGameStore';
 import { getEventById } from '@/lib/game/events-data';
 import type { Player, Property, GameLog } from '@/lib/database.types';
+
+const SKIP_TURN_AFTER_MS = 90_000; // 90 seconds idle in roll phase
 
 /**
  * Sync game state via polling every 2s.
@@ -12,6 +14,9 @@ import type { Player, Property, GameLog } from '@/lib/database.types';
  * with multiple concurrent players. Polling is reliable and sufficient.
  */
 export function useRealtimeGame(gameId: string | null) {
+  // Track when we first saw the current roll-phase for a given player
+  const rollPhaseStartRef = useRef<{ playerId: string; since: number } | null>(null);
+
   useEffect(() => {
     if (!gameId) return;
     const supabase = createClient();
@@ -28,6 +33,34 @@ export function useRealtimeGame(gameId: string | null) {
       const s = useGameStore.getState();
 
       if (game) {
+        // ── Disconnected player detection ──
+        const myPlayerId = useGameStore.getState().myPlayerId;
+        const isRollPhase = game.status === 'in_progress' && game.turn_phase === 'roll';
+        const currentTurnId = game.current_turn_player_id;
+
+        if (isRollPhase && currentTurnId && currentTurnId !== myPlayerId) {
+          // Track when this player's roll phase started
+          if (rollPhaseStartRef.current?.playerId !== currentTurnId) {
+            rollPhaseStartRef.current = { playerId: currentTurnId, since: Date.now() };
+          } else {
+            const elapsed = Date.now() - rollPhaseStartRef.current.since;
+            if (elapsed >= SKIP_TURN_AFTER_MS && myPlayerId) {
+              // Auto-skip — only one player needs to fire this (server uses OCC so duplicates are safe)
+              rollPhaseStartRef.current = null;
+              fetch('/api/game/skip-turn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId, callerId: myPlayerId }),
+              }).catch(() => {});
+            }
+          }
+        } else {
+          // Turn changed or it's my turn — reset tracker
+          if (rollPhaseStartRef.current?.playerId !== currentTurnId) {
+            rollPhaseStartRef.current = null;
+          }
+        }
+
         const prevTurnPlayerId = s.game?.current_turn_player_id;
 
         // Auto-clear pendingRent when turn changes away from us
