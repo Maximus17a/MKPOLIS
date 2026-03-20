@@ -156,7 +156,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
         relative border cursor-pointer
         flex flex-col items-center justify-center overflow-hidden
         transition-all duration-200
-        ${corner ? 'w-[38px] h-[38px] sm:w-[56px] sm:h-[56px] lg:w-[90px] lg:h-[90px]' : 'w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px]'}
+        ${corner ? 'w-[38px] h-[38px] sm:w-[56px] sm:h-[56px] lg:w-[90px] lg:h-[90px] xl:w-[110px] xl:h-[110px] 2xl:w-[124px] 2xl:h-[124px]' : 'w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px] xl:w-[88px] xl:h-[88px] 2xl:w-[100px] 2xl:h-[100px]'}
         hover:z-10 hover:scale-110 hover:border-cyan-400/60
         ${hasBuildings ? 'border-cyan-500/30' : 'border-cyan-900/30'}
       `}
@@ -295,17 +295,17 @@ export default function GameBoard() {
             if (row >= 1 && row <= 9 && col >= 1 && col <= 9) {
               if (row === 5 && col === 5) {
                 return (
-                  <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px] flex items-center justify-center">
+                  <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px] xl:w-[88px] xl:h-[88px] 2xl:w-[100px] 2xl:h-[100px] flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-[10px] sm:text-base lg:text-2xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                      <div className="text-[10px] sm:text-base lg:text-2xl xl:text-3xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
                         MK
                       </div>
-                      <div className="hidden sm:block text-[8px] text-cyan-500/60 tracking-widest">POLIS</div>
+                      <div className="hidden sm:block text-[8px] xl:text-[10px] text-cyan-500/60 tracking-widest">POLIS</div>
                     </div>
                   </div>
                 );
               }
-              return <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px]" />;
+              return <div key={i} className="w-[30px] h-[30px] sm:w-[44px] sm:h-[44px] lg:w-[70px] lg:h-[70px] xl:w-[88px] xl:h-[88px] 2xl:w-[100px] 2xl:h-[100px]" />;
             }
             return <div key={i} className="w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]" />;
           }

@@ -620,7 +620,7 @@ export default function GamePage() {
 
         {/* Center — Board + Dice + Actions */}
         <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 gap-2 sm:gap-4 overflow-auto pb-16 lg:pb-4">
-          <div className="overflow-auto w-full flex justify-center">
+          <div className="overflow-auto lg:overflow-visible w-full flex justify-center">
             <GameBoard />
           </div>
 

@@ -46,7 +46,7 @@ body {
 
 @media (min-width: 1024px) {
   .board-3d {
-    transform: perspective(1200px) rotateX(25deg) rotateZ(-5deg);
+    transform: perspective(1400px) rotateX(22deg) rotateZ(-4deg) translateY(4%);
     transform-style: preserve-3d;
   }
 }
