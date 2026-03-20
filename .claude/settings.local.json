@@ -39,7 +39,9 @@
       "Bash(vercel --prod)",
       "Bash(gh pr:*)",
       "Bash(gh auth:*)",
-      "Bash(find /c/Users/mauar/Downloads/MKPOLIS/src -name *useGameStore* -o -name *store* -type f)"
+      "Bash(find /c/Users/mauar/Downloads/MKPOLIS/src -name *useGameStore* -o -name *store* -type f)",
+      "Bash(xargs wc:*)",
+      "Bash(find /c/Users/mauar/Downloads/MKPOLIS/src -type f -name *.tsx -o -name *.ts)"
     ]
   }
 }

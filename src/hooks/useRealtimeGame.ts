@@ -22,7 +22,7 @@ export function useRealtimeGame(gameId: string | null) {
           supabase.from('games').select('*').eq('id', gameId).single(),
           supabase.from('players').select('*').eq('game_id', gameId).order('turn_order'),
           supabase.from('properties').select('*').eq('game_id', gameId),
-          supabase.from('game_logs').select('*').eq('game_id', gameId).order('created_at').limit(100),
+          supabase.from('game_logs').select('*').eq('game_id', gameId).order('created_at', { ascending: false }).limit(100),
         ]);
 
       const s = useGameStore.getState();
@@ -70,9 +70,11 @@ export function useRealtimeGame(gameId: string | null) {
       if (logs) {
         const s = useGameStore.getState();
         const currentLogIds = new Set(s.logs.map((l) => l.id));
+        // Reverse to chronological order (query returns newest-first)
+        const sortedLogs = [...(logs as GameLog[])].reverse();
 
         // Spectator event detection — show event modal for players who aren't rolling
-        const newEventLogs = (logs as GameLog[]).filter(
+        const newEventLogs = sortedLogs.filter(
           (l) => l.action_type === 'event_shown' && !currentLogIds.has(l.id)
         );
         if (newEventLogs.length > 0 && s.game?.current_turn_player_id !== s.myPlayerId) {
@@ -81,7 +83,7 @@ export function useRealtimeGame(gameId: string | null) {
           if (event) useGameStore.setState({ spectatorEvent: event });
         }
 
-        (logs as GameLog[]).forEach((l) => {
+        sortedLogs.forEach((l) => {
           if (!currentLogIds.has(l.id)) useGameStore.getState().addLog(l);
         });
       }
