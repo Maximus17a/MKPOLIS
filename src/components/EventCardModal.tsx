@@ -8,19 +8,19 @@ function playEventSound(isBoss: boolean) {
   try {
     const ctx = new AudioContext();
     if (isBoss) {
-      // Dramatic descending rumble
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
-      osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(180, ctx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.9);
-      osc2.type = 'square'; osc2.frequency.setValueAtTime(90, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(28, ctx.currentTime + 0.9);
-      gain.gain.setValueAtTime(0.28, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
-      osc1.start(); osc1.stop(ctx.currentTime + 1.0);
-      osc2.start(); osc2.stop(ctx.currentTime + 1.0);
+      // Ascending minor arpeggio: Am — A4 → C5 → E5 → A5
+      const notes = [440, 523, 659, 880];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.13;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.26, t + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.start(t); osc.stop(t + 0.4);
+      });
     } else {
       // Ascending arpeggio: C5 → E5 → G5
       const notes = [523, 659, 784];
