@@ -129,7 +129,7 @@ function BuildingIndicators({ serverLevel }: { serverLevel: number }) {
 // ── Tile Component ──
 interface TileProps {
   tile: TileData;
-  players: { id: string; color: string; position_index: number }[];
+  players: { id: string; color: string; position_index: number; piece: string | null }[];
   isOwned: boolean;
   ownerColor?: string;
   serverLevel: number;
@@ -325,6 +325,7 @@ export default function GameBoard() {
                   id: p.id,
                   color: p.color,
                   position_index: getDisplayPosition(p.id, p.position_index),
+                  piece: p.piece,
                 }))}
                 isOwned={isOwned}
                 ownerColor={ownerColor}
