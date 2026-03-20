@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     // Advance turn if it was the bankrupt player's turn
     const { data: game } = await db.from('games').select('*').eq('id', gameId).single();
-    if (game?.current_turn_player_id === playerId && activePlayers && activePlayers.length > 0) {
+    if (game && game.current_turn_player_id === playerId && activePlayers && activePlayers.length > 0) {
       const sorted = [...activePlayers].sort((a, b) => a.turn_order - b.turn_order);
       const currentIdx = sorted.findIndex((p) => p.turn_order > player.turn_order);
       const nextPlayer = sorted[currentIdx >= 0 ? currentIdx : 0];

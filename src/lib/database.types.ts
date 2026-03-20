@@ -87,6 +87,9 @@ export interface Database {
           piece?: string | null;
           pre_roll_result?: number | null;
           turn_order?: number;
+          active_quest_id?: string | null;
+          quest_progress?: number;
+          boss_immunity?: boolean;
         };
         Relationships: [];
       };
