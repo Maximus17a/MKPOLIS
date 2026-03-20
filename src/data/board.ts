@@ -112,3 +112,18 @@ export function isPropertyTile(tile: TileData): boolean {
 }
 
 export const PLAYER_COLORS = ['#00ffcc', '#ff3d71', '#ffaa00', '#7c4dff', '#00e676', '#ff6e40'];
+
+export const PLAYER_PIECES = [
+  { id: 'pawn',   emoji: '♟️', name: 'Peón'     },
+  { id: 'crown',  emoji: '👑', name: 'Corona'   },
+  { id: 'car',    emoji: '🚗', name: 'Coche'    },
+  { id: 'hat',    emoji: '🎩', name: 'Sombrero' },
+  { id: 'star',   emoji: '⭐', name: 'Estrella' },
+  { id: 'sword',  emoji: '⚔️', name: 'Espada'   },
+  { id: 'gem',    emoji: '💎', name: 'Gema'     },
+  { id: 'rocket', emoji: '🚀', name: 'Cohete'   },
+  { id: 'dragon', emoji: '🐉', name: 'Dragón'   },
+  { id: 'shield', emoji: '🛡️', name: 'Escudo'   },
+] as const;
+
+export type PieceId = (typeof PLAYER_PIECES)[number]['id'];

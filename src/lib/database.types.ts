@@ -25,7 +25,7 @@ export interface Database {
         Row: {
           id: string;
           host_id: string;
-          status: 'waiting' | 'in_progress' | 'finished';
+          status: 'waiting' | 'pre_roll' | 'in_progress' | 'finished';
           current_turn_player_id: string | null;
           turn_phase: 'roll' | 'action' | 'end';
           version: number;
@@ -34,13 +34,13 @@ export interface Database {
         Insert: {
           id?: string;
           host_id: string;
-          status?: 'waiting' | 'in_progress' | 'finished';
+          status?: 'waiting' | 'pre_roll' | 'in_progress' | 'finished';
           current_turn_player_id?: string | null;
           turn_phase?: 'roll' | 'action' | 'end';
           version?: number;
         };
         Update: {
-          status?: 'waiting' | 'in_progress' | 'finished';
+          status?: 'waiting' | 'pre_roll' | 'in_progress' | 'finished';
           current_turn_player_id?: string | null;
           turn_phase?: 'roll' | 'action' | 'end';
           version?: number;
@@ -63,6 +63,8 @@ export interface Database {
           active_quest_id: string | null;
           quest_progress: number;
           boss_immunity: boolean;
+          piece: string | null;
+          pre_roll_result: number | null;
         };
         Insert: {
           id?: string;
@@ -72,6 +74,8 @@ export interface Database {
           balance?: number;
           turn_order: number;
           color?: string;
+          piece?: string | null;
+          pre_roll_result?: number | null;
         };
         Update: {
           position_index?: number;
@@ -80,6 +84,9 @@ export interface Database {
           jail_turns_remaining?: number;
           stun_turns_remaining?: number;
           version?: number;
+          piece?: string | null;
+          pre_roll_result?: number | null;
+          turn_order?: number;
         };
         Relationships: [];
       };

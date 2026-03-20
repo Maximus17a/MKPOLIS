@@ -23,6 +23,9 @@ import DebtModal from '@/components/DebtModal';
 import TradePanel from '@/components/TradePanel';
 import TradeOfferModal from '@/components/TradeOfferModal';
 import RentModal from '@/components/RentModal';
+import { PLAYER_PIECES } from '@/data/board';
+
+const DICE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
 export default function GamePage() {
   const params = useParams();
@@ -77,6 +80,8 @@ export default function GamePage() {
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [starting, setStarting] = useState(false);
+  const [beginRolling, setBeginRolling] = useState(false);
+  const [isPreRolling, setIsPreRolling] = useState(false);
 
   // Auto-close spectator event after 6s (spectators have no action to take)
   useEffect(() => {
@@ -100,7 +105,7 @@ export default function GamePage() {
         // Fallback poll in case realtime WebSocket is not delivering the update
         const poll = setInterval(async () => {
           const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
-          if (game && game.status !== 'waiting') {
+          if (game && game.status === 'in_progress') {
             store.setGame(game);
             clearInterval(poll);
           }
@@ -122,6 +127,54 @@ export default function GamePage() {
       setStarting(false);
     }
   }, [gameId, store, starting, supabase]);
+
+  const handleBeginRoll = useCallback(async () => {
+    if (beginRolling) return;
+    setBeginRolling(true);
+    try {
+      await fetch('/api/game/begin-roll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, hostUserId: store.myUserId }),
+      });
+    } catch (err) {
+      console.error('begin-roll failed:', err);
+    } finally {
+      setBeginRolling(false);
+    }
+  }, [gameId, store.myUserId, beginRolling]);
+
+  const handlePreRoll = useCallback(async () => {
+    if (isPreRolling) return;
+    const myPlayer = store.players.find((p) => p.id === store.myPlayerId);
+    if (!myPlayer) return;
+    setIsPreRolling(true);
+    try {
+      await fetch('/api/game/pre-roll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, playerId: myPlayer.id }),
+      });
+    } catch (err) {
+      console.error('pre-roll failed:', err);
+    } finally {
+      setIsPreRolling(false);
+    }
+  }, [gameId, store.myPlayerId, store.players, isPreRolling]);
+
+  const handleSelectPiece = useCallback(async (pieceId: string) => {
+    const myPlayer = store.players.find((p) => p.id === store.myPlayerId);
+    if (!myPlayer) return;
+    try {
+      await fetch('/api/game/select-piece', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, playerId: myPlayer.id, piece: pieceId }),
+      });
+    } catch (err) {
+      console.error('select-piece failed:', err);
+    }
+  }, [gameId, store.myPlayerId, store.players]);
 
   // ─── API Call Wrappers with Optimistic Updates ───
 
@@ -286,11 +339,15 @@ export default function GamePage() {
     [gameId, store]
   );
 
-  // ─── Waiting Lobby ───
+  // ─── Waiting Lobby + Pre-Roll ───
   const isHost = store.game?.host_id === store.myUserId;
   const playerCount = store.players.length;
+  const myLobbyPlayer = store.players.find((p) => p.id === store.myPlayerId);
+  const isPreRollPhase = store.game?.status === 'pre_roll';
+  const allRolled = playerCount >= 2 && store.players.every((p) => p.pre_roll_result != null);
+  const myPlayerRolled = myLobbyPlayer?.pre_roll_result != null;
 
-  if (store.game?.status === 'waiting') {
+  if (store.game?.status === 'waiting' || store.game?.status === 'pre_roll') {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
         <div className="fixed inset-0 pointer-events-none">
@@ -299,7 +356,7 @@ export default function GamePage() {
         </div>
 
         <motion.div
-          className="relative z-10 text-center space-y-8 max-w-md mx-auto px-4"
+          className="relative z-10 text-center space-y-6 max-w-lg w-full mx-auto px-4 py-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -307,50 +364,127 @@ export default function GamePage() {
             <h1 className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-2">
               MKpolis
             </h1>
-            <p className="text-cyan-500/50 text-sm">Sala de espera</p>
+            <p className="text-cyan-500/50 text-sm">
+              {isPreRollPhase ? '¡Tirad los dados para el orden de turno!' : 'Sala de espera'}
+            </p>
           </div>
 
-          {/* Game ID */}
-          <div className="p-4 rounded-xl border border-cyan-900/30 bg-slate-900/60">
-            <p className="text-xs text-cyan-500/50 mb-1">Codigo de partida</p>
-            <p className="text-lg font-mono text-cyan-300 select-all">{gameId}</p>
-            <p className="text-xs text-cyan-500/30 mt-2">Comparte este codigo para que otros se unan</p>
-          </div>
+          {/* Game ID (waiting only) */}
+          {!isPreRollPhase && (
+            <div className="p-4 rounded-xl border border-cyan-900/30 bg-slate-900/60">
+              <p className="text-xs text-cyan-500/50 mb-1">Codigo de partida</p>
+              <p className="text-lg font-mono text-cyan-300 select-all">{gameId}</p>
+              <p className="text-xs text-cyan-500/30 mt-2">Comparte este codigo para que otros se unan</p>
+            </div>
+          )}
 
-          {/* Players */}
+          {/* Piece Selection (waiting only) */}
+          {!isPreRollPhase && (
+            <div className="space-y-3">
+              <p className="text-xs text-cyan-500/60 uppercase tracking-widest">Elige tu ficha</p>
+              <div className="grid grid-cols-5 gap-2">
+                {PLAYER_PIECES.map((piece) => {
+                  const takerPlayer = store.players.find(
+                    (p) => p.piece === piece.id && p.id !== store.myPlayerId
+                  );
+                  const isTaken = takerPlayer != null;
+                  const isSelected = myLobbyPlayer?.piece === piece.id;
+                  return (
+                    <button
+                      key={piece.id}
+                      onClick={() => !isTaken && handleSelectPiece(piece.id)}
+                      disabled={isTaken}
+                      className={[
+                        'p-2 rounded-lg border flex flex-col items-center gap-0.5 transition-all',
+                        isSelected
+                          ? 'border-cyan-400 bg-cyan-500/20 shadow-lg shadow-cyan-500/20'
+                          : isTaken
+                          ? 'border-slate-700/40 bg-slate-900/20 opacity-40 cursor-not-allowed'
+                          : 'border-cyan-900/30 bg-slate-900/40 hover:border-cyan-500/40 hover:bg-slate-800/40 cursor-pointer',
+                      ].join(' ')}
+                    >
+                      <span className="text-xl leading-none">{piece.emoji}</span>
+                      <span className="text-[9px] text-cyan-400/70 leading-tight">{piece.name}</span>
+                      {isTaken && takerPlayer && (
+                        <div
+                          className="w-1.5 h-1.5 rounded-full mt-0.5"
+                          style={{ background: takerPlayer.color }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Players list */}
           <div className="space-y-2">
             <p className="text-xs text-cyan-500/60 uppercase tracking-widest">
-              Jugadores ({playerCount}/6)
+              {isPreRollPhase ? `Resultados (${store.players.filter((p) => p.pre_roll_result != null).length}/${playerCount})` : `Jugadores (${playerCount}/6)`}
             </p>
             {store.players
               .slice()
-              .sort((a, b) => a.turn_order - b.turn_order)
-              .map((p) => (
-                <motion.div
-                  key={p.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-cyan-900/20 bg-slate-900/40"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-black"
-                    style={{ background: p.color }}
+              .sort((a, b) => {
+                if (isPreRollPhase && allRolled) {
+                  return (b.pre_roll_result ?? 0) - (a.pre_roll_result ?? 0);
+                }
+                return a.turn_order - b.turn_order;
+              })
+              .map((p) => {
+                const piece = PLAYER_PIECES.find((x) => x.id === p.piece);
+                const isMe = p.id === store.myPlayerId;
+                const hasRolled = p.pre_roll_result != null;
+                return (
+                  <motion.div
+                    key={p.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-cyan-900/20 bg-slate-900/40"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
                   >
-                    P{p.turn_order + 1}
-                  </div>
-                  <span className="text-sm text-cyan-200">
-                    {store.getPlayerName(p)}
-                  </span>
-                  {p.user_id === store.game?.host_id && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 ml-auto">
-                      HOST
-                    </span>
-                  )}
-                </motion.div>
-              ))}
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-lg border"
+                      style={{ background: p.color + '28', borderColor: p.color + '60' }}
+                    >
+                      {piece ? (
+                        piece.emoji
+                      ) : (
+                        <span className="text-xs font-black" style={{ color: p.color }}>
+                          P{p.turn_order + 1}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-cyan-200 flex-1 text-left">{store.getPlayerName(p)}</span>
 
-            {/* Waiting animation */}
-            {playerCount < 2 && (
+                    {/* Pre-roll die result */}
+                    {isPreRollPhase && (
+                      <span className="text-2xl leading-none w-8 text-center">
+                        {hasRolled ? DICE_FACES[p.pre_roll_result!] : '⬜'}
+                      </span>
+                    )}
+
+                    {/* Roll button for current player */}
+                    {isPreRollPhase && isMe && !hasRolled && (
+                      <motion.button
+                        onClick={handlePreRoll}
+                        disabled={isPreRolling}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-bold disabled:opacity-50 hover:from-cyan-400 hover:to-purple-500"
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {isPreRolling ? '...' : '🎲 Lanzar'}
+                      </motion.button>
+                    )}
+
+                    {p.user_id === store.game?.host_id && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">
+                        HOST
+                      </span>
+                    )}
+                  </motion.div>
+                );
+              })}
+
+            {!isPreRollPhase && playerCount < 2 && (
               <motion.p
                 className="text-xs text-cyan-500/40 pt-2"
                 animate={{ opacity: [0.3, 0.7, 0.3] }}
@@ -361,28 +495,56 @@ export default function GamePage() {
             )}
           </div>
 
-          {/* Start button (host only) */}
-          {isHost && playerCount >= 2 && (
+          {/* Action buttons */}
+          {!isPreRollPhase && isHost && playerCount >= 2 && (
             <motion.button
-              onClick={handleStartGame}
-              disabled={starting}
+              onClick={handleBeginRoll}
+              disabled={beginRolling}
               className="px-10 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg shadow-xl shadow-cyan-500/20 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              {starting ? 'Iniciando...' : 'Iniciar Partida'}
+              {beginRolling ? '...' : '🎲 Tirar para el orden'}
             </motion.button>
           )}
 
-          {!isHost && playerCount >= 2 && (
+          {!isPreRollPhase && !isHost && playerCount >= 2 && (
             <motion.p
               className="text-sm text-cyan-500/50"
               animate={{ opacity: [0.4, 0.8, 0.4] }}
               transition={{ repeat: Infinity, duration: 2 }}
             >
               Esperando a que el host inicie la partida...
+            </motion.p>
+          )}
+
+          {isPreRollPhase && isHost && allRolled && (
+            <motion.button
+              onClick={handleStartGame}
+              disabled={starting}
+              className="px-10 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-cyan-600 text-white font-bold text-lg shadow-xl shadow-green-500/20 hover:from-green-400 hover:to-cyan-500 disabled:opacity-50"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {starting ? 'Iniciando...' : '🚀 Iniciar Partida'}
+            </motion.button>
+          )}
+
+          {isPreRollPhase && (isHost ? !allRolled : true) && (
+            <motion.p
+              className="text-sm text-cyan-500/50"
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
+              {allRolled && !isHost
+                ? 'Esperando que el host inicie...'
+                : !myPlayerRolled
+                ? 'Lanza tu dado para el orden de turno'
+                : 'Esperando a que todos lancen...'}
             </motion.p>
           )}
         </motion.div>

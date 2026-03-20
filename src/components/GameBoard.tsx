@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BOARD_TILES, COLOR_MAP, type TileData, type ColorGroup } from '@/data/board';
+import { BOARD_TILES, COLOR_MAP, PLAYER_PIECES, type TileData, type ColorGroup } from '@/data/board';
 import { useGameStore } from '@/store/useGameStore';
 import { useSteppingAnimation } from '@/hooks/useSteppingAnimation';
 
@@ -225,18 +225,32 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
       {/* Player tokens */}
       {playersHere.length > 0 && (
         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-          {playersHere.map((p) => (
-            <motion.div
-              key={p.id}
-              className="w-3 h-3 rounded-full border border-white/40 shadow-lg"
-              style={{
-                background: p.color,
-                boxShadow: `0 0 8px ${p.color}`,
-              }}
-              layoutId={`token-${p.id}`}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            />
-          ))}
+          {playersHere.map((p) => {
+            const piece = PLAYER_PIECES.find((x) => x.id === p.piece);
+            return piece ? (
+              <motion.div
+                key={p.id}
+                className="w-4 h-4 flex items-center justify-center rounded-sm text-[9px] leading-none border"
+                style={{
+                  background: `${p.color}28`,
+                  borderColor: `${p.color}80`,
+                  boxShadow: `0 0 6px ${p.color}`,
+                }}
+                layoutId={`token-${p.id}`}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                {piece.emoji}
+              </motion.div>
+            ) : (
+              <motion.div
+                key={p.id}
+                className="w-3 h-3 rounded-full border border-white/40 shadow-lg"
+                style={{ background: p.color, boxShadow: `0 0 8px ${p.color}` }}
+                layoutId={`token-${p.id}`}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              />
+            );
+          })}
         </div>
       )}
     </motion.div>
