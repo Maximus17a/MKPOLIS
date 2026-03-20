@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
 import { getEventById } from '@/lib/game/events-data';
 import { useRealtimeGame } from '@/hooks/useRealtimeGame';
@@ -82,6 +82,7 @@ export default function GamePage() {
   const [starting, setStarting] = useState(false);
   const [beginRolling, setBeginRolling] = useState(false);
   const [isPreRolling, setIsPreRolling] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<null | 'players' | 'log' | 'chat'>(null);
 
   // Auto-close spectator event after 6s (spectators have no action to take)
   useEffect(() => {
@@ -586,16 +587,18 @@ export default function GamePage() {
       </div>
 
       <div className="relative z-10 flex h-screen">
-        {/* Left Panel — Players */}
-        <div className="w-80 p-4 border-r border-cyan-900/20 overflow-y-auto bg-slate-950/80 backdrop-blur">
+        {/* Left Panel — desktop only */}
+        <div className="hidden lg:block w-72 p-4 border-r border-cyan-900/20 overflow-y-auto bg-slate-950/80 backdrop-blur shrink-0">
           <PlayerPanel />
           <MyPropertiesPanel gameId={gameId} onUpgrade={handleUpgrade} />
           <TradePanel gameId={gameId} />
         </div>
 
         {/* Center — Board + Dice + Actions */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4 overflow-auto">
-          <GameBoard />
+        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 gap-2 sm:gap-4 overflow-auto pb-16 lg:pb-4">
+          <div className="overflow-auto w-full flex justify-center">
+            <GameBoard />
+          </div>
 
           <div className="flex flex-col items-center gap-2">
             <DiceRoller onRoll={handleRoll} />
@@ -607,13 +610,59 @@ export default function GamePage() {
           </div>
         </div>
 
-        {/* Right Panel — Game Log + Chat + Emotes */}
-        <div className="w-80 p-4 border-l border-cyan-900/20 bg-slate-950/80 backdrop-blur overflow-y-auto flex flex-col gap-4">
+        {/* Right Panel — desktop only */}
+        <div className="hidden lg:flex w-72 p-4 border-l border-cyan-900/20 bg-slate-950/80 backdrop-blur overflow-y-auto flex-col gap-4 shrink-0">
           <GameLog />
           <ChatPanel gameId={gameId} />
           <EmotePanel gameId={gameId} />
         </div>
       </div>
+
+      {/* Mobile bottom tab bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-cyan-900/30 bg-slate-950/95 backdrop-blur">
+        {(
+          [
+            { id: 'players', icon: '👥', label: 'Jugadores' },
+            { id: 'log',     icon: '📜', label: 'Registro'  },
+            { id: 'chat',    icon: '💬', label: 'Chat'      },
+          ] as const
+        ).map(({ id, icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setMobilePanel(mobilePanel === id ? null : id)}
+            className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 text-[10px] transition-colors ${
+              mobilePanel === id ? 'text-cyan-400' : 'text-cyan-500/40'
+            }`}
+          >
+            <span className="text-lg leading-none">{icon}</span>
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile slide-up panel */}
+      <AnimatePresence>
+        {mobilePanel && (
+          <motion.div
+            className="lg:hidden fixed bottom-[52px] left-0 right-0 z-40 bg-slate-950/98 backdrop-blur border-t border-cyan-900/30 p-4 overflow-y-auto"
+            style={{ maxHeight: '60vh' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+          >
+            {mobilePanel === 'players' && (
+              <>
+                <PlayerPanel />
+                <MyPropertiesPanel gameId={gameId} onUpgrade={handleUpgrade} />
+                <TradePanel gameId={gameId} />
+              </>
+            )}
+            {mobilePanel === 'log' && <GameLog />}
+            {mobilePanel === 'chat' && <ChatPanel gameId={gameId} />}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating emote bubbles */}
       <EmoteBubble />

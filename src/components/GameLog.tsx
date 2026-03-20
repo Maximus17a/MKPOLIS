@@ -46,7 +46,7 @@ export default function GameLog() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-cyan-900/30"
-        style={{ maxHeight: '300px' }}
+        style={{ maxHeight: '40vh' }}
       >
         <AnimatePresence initial={false}>
           {logs.map((log) => (

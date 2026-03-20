@@ -156,7 +156,7 @@ function Tile({ tile, players, isOwned, ownerColor, serverLevel, onClick }: Tile
         relative border cursor-pointer
         flex flex-col items-center justify-center overflow-hidden
         transition-all duration-200
-        ${corner ? 'w-[90px] h-[90px]' : 'w-[70px] h-[70px]'}
+        ${corner ? 'w-[56px] h-[56px] sm:w-[70px] sm:h-[70px] lg:w-[90px] lg:h-[90px]' : 'w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]'}
         hover:z-10 hover:scale-110 hover:border-cyan-400/60
         ${hasBuildings ? 'border-cyan-500/30' : 'border-cyan-900/30'}
       `}
@@ -307,9 +307,9 @@ export default function GameBoard() {
                   </div>
                 );
               }
-              return <div key={i} className="w-[70px] h-[70px]" />;
+              return <div key={i} className="w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]" />;
             }
-            return <div key={i} className="w-[70px] h-[70px]" />;
+            return <div key={i} className="w-[44px] h-[44px] sm:w-[56px] sm:h-[56px] lg:w-[70px] lg:h-[70px]" />;
           }
 
           const { isOwned, ownerColor, serverLevel } = getOwnerInfo(tile.index);

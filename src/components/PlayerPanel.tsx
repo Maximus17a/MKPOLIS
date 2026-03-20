@@ -12,7 +12,7 @@ export default function PlayerPanel() {
     properties.filter((p) => p.owner_id === playerId);
 
   return (
-    <div className="flex flex-col gap-3 w-72">
+    <div className="flex flex-col gap-3 w-full">
       <h2 className="text-xs font-bold text-cyan-500/60 uppercase tracking-widest mb-1">
         Jugadores
       </h2>

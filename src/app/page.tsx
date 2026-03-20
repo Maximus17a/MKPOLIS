@@ -132,14 +132,14 @@ export default function LobbyPage() {
         <div className="absolute bottom-0 left-1/4 w-[600px] h-[300px] bg-purple-500/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-6xl font-black mb-2">
+          <h1 className="text-4xl sm:text-6xl font-black mb-2">
             <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               MKpolis
             </span>

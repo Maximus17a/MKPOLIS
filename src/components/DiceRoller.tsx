@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/useGameStore';
 
@@ -18,7 +18,7 @@ function DieFace({ value, rolling }: { value: number; rolling: boolean }) {
 
   return (
     <motion.div
-      className="relative w-20 h-20 rounded-2xl border border-cyan-500/40"
+      className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl border border-cyan-500/40"
       style={{
         background: 'linear-gradient(145deg, #0d1f3c, #091525)',
         boxShadow: '0 0 24px rgba(0, 255, 204, 0.18), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -1px 0 rgba(0,0,0,0.3)',

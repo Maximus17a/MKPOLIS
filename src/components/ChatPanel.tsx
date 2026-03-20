@@ -72,7 +72,7 @@ export default function ChatPanel({ gameId }: ChatPanelProps) {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-cyan-900/30 mb-2"
-        style={{ maxHeight: '200px' }}
+        style={{ maxHeight: '30vh' }}
       >
         <AnimatePresence initial={false}>
           {chatMessages.map((msg) => {
