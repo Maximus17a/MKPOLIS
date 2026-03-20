@@ -7,6 +7,7 @@ import {
   randomBossFight,
   type GameEvent,
 } from '@/lib/game/events-data';
+import { parseRules } from '@/lib/game/rules';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +28,8 @@ export async function POST(req: NextRequest) {
     if (game.turn_phase !== 'roll') {
       return Response.json({ error: 'Already rolled this turn' }, { status: 400 });
     }
+
+    const rules = parseRules(game.rules);
 
     // ── Check stun ──
     if (player.stun_turns_remaining > 0) {
@@ -77,9 +80,20 @@ export async function POST(req: NextRequest) {
 
     // ── Triple doubles → jail ──
     if (newDoublesCount >= 3) {
+      const newJailVisits = (player.jail_visit_count ?? 0) + 1;
+      if (rules.jail_bankruptcy && newJailVisits >= 5) {
+        // Immediate bankruptcy from repeated jail visits
+        await occUpdate(db, 'players', player.id, player.version, {
+          is_bankrupt: true, balance: 0, jail_visit_count: newJailVisits,
+        });
+        await db.from('properties').update({ owner_id: null, server_level: 0 }).eq('game_id', gameId).eq('owner_id', playerId);
+        await log(db, gameId, playerId, `⛓️ Dobles 3 veces + 5ª visita al LAG. ¡Bancarrota inmediata!`, 'jail');
+        const gameOver = await checkAndFinishGame(db, gameId, game.id, game.version);
+        await advanceTurn(db, game);
+        return Response.json({ dice: [dice1, dice2], tripleDoubles: true, jailBankruptcy: true, gameOver, doublesCount: 0 });
+      }
       await occUpdate(db, 'players', player.id, player.version, {
-        position_index: 10,
-        jail_turns_remaining: 3,
+        position_index: 10, jail_turns_remaining: 3, jail_visit_count: newJailVisits,
       });
       await occUpdate(db, 'games', game.id, game.version, { turn_phase: 'action' });
       await log(db, gameId, playerId, `Dobles 3 veces seguidas (${dice1}+${dice2})! Enviado al LAG!`, 'jail');
@@ -180,23 +194,59 @@ export async function POST(req: NextRequest) {
     if (tile.type === 'go_to_jail') {
       const { data: fp } = await db.from('players').select('*').eq('id', playerId).single();
       if (fp) {
-        // quest_valorant_clutch fails on jail
-        const questFail = fp.active_quest_id === 'quest_valorant_clutch';
-        await occUpdate(db, 'players', fp.id, fp.version, {
-          position_index: 10,
-          jail_turns_remaining: 3,
-          ...(questFail ? { active_quest_id: null, quest_progress: 0, balance: fp.balance - 100 } : {}),
-        });
-        if (questFail) await log(db, gameId, playerId, 'Quest "Clutch en Valorant" fallida! (fue al LAG) -$100.', 'power_card');
+        const newJailVisits = (fp.jail_visit_count ?? 0) + 1;
+        if (rules.jail_bankruptcy && newJailVisits >= 5) {
+          const questFail = fp.active_quest_id === 'quest_valorant_clutch';
+          await occUpdate(db, 'players', fp.id, fp.version, {
+            is_bankrupt: true, balance: 0, jail_visit_count: newJailVisits,
+            ...(questFail ? { active_quest_id: null, quest_progress: 0 } : {}),
+          });
+          await db.from('properties').update({ owner_id: null, server_level: 0 }).eq('game_id', gameId).eq('owner_id', playerId);
+          await log(db, gameId, playerId, `⛓️ 5ª visita al LAG. ¡Bancarrota inmediata por la regla de reincidencia!`, 'jail');
+          await checkAndFinishGame(db, gameId, game.id, game.version);
+          landingEffect = 'JAIL_BANKRUPTCY';
+        } else {
+          // quest_valorant_clutch fails on jail
+          const questFail = fp.active_quest_id === 'quest_valorant_clutch';
+          await occUpdate(db, 'players', fp.id, fp.version, {
+            position_index: 10, jail_turns_remaining: 3, jail_visit_count: newJailVisits,
+            ...(questFail ? { active_quest_id: null, quest_progress: 0, balance: fp.balance - 100 } : {}),
+          });
+          if (questFail) await log(db, gameId, playerId, 'Quest "Clutch en Valorant" fallida! (fue al LAG) -$100.', 'power_card');
+          landingEffect = 'Enviado al LAG!';
+        }
+      } else {
+        landingEffect = 'Enviado al LAG!';
       }
-      landingEffect = 'Enviado al LAG!';
 
     } else if (tile.type === 'tax' && tile.taxAmount) {
       const { data: fp } = await db.from('players').select('*').eq('id', playerId).single();
       if (fp) {
         await occUpdate(db, 'players', fp.id, fp.version, { balance: fp.balance - tile.taxAmount });
       }
-      landingEffect = `Paga impuesto: -$${tile.taxAmount}`;
+      if (rules.lounge_pot) {
+        const { data: freshGame } = await db.from('games').select('free_parking_pot').eq('id', gameId).single();
+        const currentPot = freshGame?.free_parking_pot ?? 0;
+        await db.from('games').update({ free_parking_pot: currentPot + tile.taxAmount }).eq('id', gameId);
+        landingEffect = `Paga impuesto: -$${tile.taxAmount} (bote del Lounge: $${currentPot + tile.taxAmount})`;
+      } else {
+        landingEffect = `Paga impuesto: -$${tile.taxAmount}`;
+      }
+
+    } else if (tile.type === 'free_parking' && rules.lounge_pot) {
+      const { data: freshGame } = await db.from('games').select('free_parking_pot').eq('id', gameId).single();
+      const pot = freshGame?.free_parking_pot ?? 0;
+      if (pot > 0) {
+        const { data: fp } = await db.from('players').select('*').eq('id', playerId).single();
+        if (fp) {
+          await occUpdate(db, 'players', fp.id, fp.version, { balance: fp.balance + pot });
+        }
+        await db.from('games').update({ free_parking_pot: 0 }).eq('id', gameId);
+        await log(db, gameId, playerId, `🅿️ ¡Cae en el Lounge de Servidor y se lleva el bote de $${pot}!`, 'free_parking');
+        landingEffect = `¡Bote del Lounge! +$${pot}`;
+      } else {
+        landingEffect = 'El bote del Lounge está vacío.';
+      }
 
     } else if (tile.type === 'power_card') {
       // Side Quest / Misión Secundaria
@@ -495,4 +545,22 @@ async function log(
   actionType: string
 ) {
   await db.from('game_logs').insert({ game_id: gameId, player_id: playerId, message, action_type: actionType });
+}
+
+/** If only one non-bankrupt player remains, end the game. Returns true if game ended. */
+async function checkAndFinishGame(
+  db: ReturnType<typeof createServiceClient>,
+  gameId: string,
+  gameDbId: string,
+  gameVersion: number
+): Promise<boolean> {
+  const { data: active } = await db
+    .from('players').select('id').eq('game_id', gameId).eq('is_bankrupt', false);
+  if ((active?.length ?? 0) <= 1) {
+    const { data: freshGame } = await db.from('games').select('version').eq('id', gameDbId).single();
+    await db.from('games').update({ status: 'finished', version: (freshGame?.version ?? gameVersion) + 1 })
+      .eq('id', gameDbId);
+    return true;
+  }
+  return false;
 }

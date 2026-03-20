@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 import { occUpdate, ConflictError, conflictResponse } from '@/lib/occ';
+import { parseRules, checkPropertyWinner, buildOwnershipMap } from '@/lib/game/rules';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +41,35 @@ export async function POST(req: NextRequest) {
           message: `Quest "Clutch en Valorant": ${newProgress} turno(s) restante(s).`,
           action_type: 'power_card',
         });
+      }
+    }
+
+    // ── Check property-based win conditions ──
+    const rules = parseRules(game.rules);
+    if (rules.win_color_line || rules.win_monopoly_or_stations) {
+      const { data: allProperties } = await db.from('properties').select('owner_id, property_index').eq('game_id', gameId);
+      const { data: activePlayers2 } = await db.from('players').select('id').eq('game_id', gameId).eq('is_bankrupt', false);
+      if (allProperties && activePlayers2) {
+        const ownershipMap = buildOwnershipMap(allProperties);
+        const activeIds = activePlayers2.map((p) => p.id);
+        const winnerId = checkPropertyWinner(rules, activeIds, ownershipMap);
+        if (winnerId) {
+          // Mark everyone except winner as bankrupt, then end game
+          for (const p of activePlayers2) {
+            if (p.id !== winnerId) {
+              await db.from('players').update({ is_bankrupt: true }).eq('id', p.id);
+            }
+          }
+          const { data: freshGame } = await db.from('games').select('version').eq('id', game.id).single();
+          await db.from('games').update({ status: 'finished', version: (freshGame?.version ?? game.version) + 1 }).eq('id', game.id);
+          await db.from('game_logs').insert({
+            game_id: gameId,
+            player_id: winnerId,
+            message: '🏆 ¡Ha ganado la partida por cumplir la condición de victoria!',
+            action_type: 'game_over',
+          });
+          return Response.json({ success: true, gameOver: true, winnerId });
+        }
       }
     }
 

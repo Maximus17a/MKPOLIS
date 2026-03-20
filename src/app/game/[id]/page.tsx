@@ -24,6 +24,8 @@ import TradePanel from '@/components/TradePanel';
 import TradeOfferModal from '@/components/TradeOfferModal';
 import RentModal from '@/components/RentModal';
 import { PLAYER_PIECES } from '@/data/board';
+import RulesPanel from '@/components/RulesPanel';
+import { parseRules } from '@/lib/game/rules';
 
 const DICE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
@@ -440,6 +442,17 @@ export default function GamePage() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Rules Panel (waiting phase only) */}
+          {!isPreRollPhase && (
+            <div className="p-4 rounded-xl border border-cyan-900/30 bg-slate-900/60">
+              <RulesPanel
+                gameId={gameId}
+                rules={parseRules(store.game?.rules)}
+                isHost={isHost}
+              />
             </div>
           )}
 

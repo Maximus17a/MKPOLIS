@@ -1,5 +1,12 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+export interface GameRules {
+  lounge_pot: boolean;           // Regla de la casa: el bote del Lounge de Servidor
+  jail_bankruptcy: boolean;      // Regla de la casa: bancarrota tras 5 visitas a la cárcel
+  win_color_line: boolean;       // Condición de victoria: comprar una línea entera de color
+  win_monopoly_or_stations: boolean; // Condición de victoria: 3 monopolios distintos o 4 estaciones
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -30,6 +37,8 @@ export interface Database {
           turn_phase: 'roll' | 'action' | 'end';
           version: number;
           created_at: string;
+          rules: GameRules;
+          free_parking_pot: number;
         };
         Insert: {
           id?: string;
@@ -38,12 +47,16 @@ export interface Database {
           current_turn_player_id?: string | null;
           turn_phase?: 'roll' | 'action' | 'end';
           version?: number;
+          rules?: GameRules;
+          free_parking_pot?: number;
         };
         Update: {
           status?: 'waiting' | 'pre_roll' | 'in_progress' | 'finished';
           current_turn_player_id?: string | null;
           turn_phase?: 'roll' | 'action' | 'end';
           version?: number;
+          rules?: GameRules;
+          free_parking_pot?: number;
         };
         Relationships: [];
       };
@@ -65,6 +78,7 @@ export interface Database {
           boss_immunity: boolean;
           piece: string | null;
           pre_roll_result: number | null;
+          jail_visit_count: number;
         };
         Insert: {
           id?: string;
@@ -76,6 +90,7 @@ export interface Database {
           color?: string;
           piece?: string | null;
           pre_roll_result?: number | null;
+          jail_visit_count?: number;
         };
         Update: {
           position_index?: number;
@@ -90,6 +105,7 @@ export interface Database {
           active_quest_id?: string | null;
           quest_progress?: number;
           boss_immunity?: boolean;
+          jail_visit_count?: number;
         };
         Relationships: [];
       };

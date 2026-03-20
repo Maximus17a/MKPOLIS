@@ -21,13 +21,16 @@ const MOCK_GAME: Game = {
   turn_phase: 'roll',
   version: 1,
   created_at: new Date().toISOString(),
+  rules: { lounge_pot: false, jail_bankruptcy: false, win_color_line: false, win_monopoly_or_stations: false },
+  free_parking_pot: 0,
 };
 
+const BASE_PLAYER = { active_quest_id: null, quest_progress: 0, boss_immunity: false, piece: null, pre_roll_result: null, jail_visit_count: 0 };
 const MOCK_PLAYERS: Player[] = [
-  { id: 'player-1', game_id: 'demo-game', user_id: 'user-1', position_index: 0, balance: 1500, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 0, turn_order: 0, color: '#00ffcc', version: 1 },
-  { id: 'player-2', game_id: 'demo-game', user_id: 'user-2', position_index: 5, balance: 1320, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 0, turn_order: 1, color: '#ff3d71', version: 1 },
-  { id: 'player-3', game_id: 'demo-game', user_id: 'user-3', position_index: 12, balance: 980, is_bankrupt: false, jail_turns_remaining: 2, stun_turns_remaining: 0, turn_order: 2, color: '#ffaa00', version: 1 },
-  { id: 'player-4', game_id: 'demo-game', user_id: 'user-4', position_index: 24, balance: 1750, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 1, turn_order: 3, color: '#7c4dff', version: 1 },
+  { ...BASE_PLAYER, id: 'player-1', game_id: 'demo-game', user_id: 'user-1', position_index: 0, balance: 1500, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 0, turn_order: 0, color: '#00ffcc', version: 1 },
+  { ...BASE_PLAYER, id: 'player-2', game_id: 'demo-game', user_id: 'user-2', position_index: 5, balance: 1320, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 0, turn_order: 1, color: '#ff3d71', version: 1 },
+  { ...BASE_PLAYER, id: 'player-3', game_id: 'demo-game', user_id: 'user-3', position_index: 12, balance: 980, is_bankrupt: false, jail_turns_remaining: 2, stun_turns_remaining: 0, turn_order: 2, color: '#ffaa00', version: 1 },
+  { ...BASE_PLAYER, id: 'player-4', game_id: 'demo-game', user_id: 'user-4', position_index: 24, balance: 1750, is_bankrupt: false, jail_turns_remaining: 0, stun_turns_remaining: 1, turn_order: 3, color: '#7c4dff', version: 1 },
 ];
 
 const MOCK_PROPERTIES: Property[] = [
