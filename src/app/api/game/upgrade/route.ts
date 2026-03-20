@@ -81,9 +81,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check funds
-    if (player.balance < tile.buildCost) {
-      return Response.json({ error: 'Insufficient funds' }, { status: 400 });
+    // Check funds — player must keep at least $1 after upgrading
+    if (player.balance <= tile.buildCost) {
+      return Response.json({ error: 'No tienes suficientes fondos: debes conservar al menos $1 después de mejorar' }, { status: 400 });
     }
 
     // OCC: Upgrade property

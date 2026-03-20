@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 import { occUpdate, ConflictError, conflictResponse } from '@/lib/occ';
-import { parseRules, checkPropertyWinner, buildOwnershipMap } from '@/lib/game/rules';
+import { parseRules, checkPropertyWinner, buildOwnershipMap, WIN_REASON_LABEL } from '@/lib/game/rules';
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
       if (allProperties && activePlayers2) {
         const ownershipMap = buildOwnershipMap(allProperties);
         const activeIds = activePlayers2.map((p) => p.id);
-        const winnerId = checkPropertyWinner(rules, activeIds, ownershipMap);
-        if (winnerId) {
+        const winResult = checkPropertyWinner(rules, activeIds, ownershipMap);
+        if (winResult) {
+          const { winnerId, reason } = winResult;
           // Mark everyone except winner as bankrupt, then end game
           for (const p of activePlayers2) {
             if (p.id !== winnerId) {
@@ -65,10 +66,10 @@ export async function POST(req: NextRequest) {
           await db.from('game_logs').insert({
             game_id: gameId,
             player_id: winnerId,
-            message: '🏆 ¡Ha ganado la partida por cumplir la condición de victoria!',
+            message: `🏆 ${WIN_REASON_LABEL[reason]}`,
             action_type: 'game_over',
           });
-          return Response.json({ success: true, gameOver: true, winnerId });
+          return Response.json({ success: true, gameOver: true, winnerId, winReason: reason });
         }
       }
     }

@@ -34,19 +34,25 @@ const COLOR_GROUP_INDICES: Record<ColorGroup, number[]> = {
 
 const STATION_INDICES = [5, 15, 25, 35];
 
+export type WinReason =
+  | 'win_color_line'
+  | 'win_monopoly_3'
+  | 'win_stations_4'
+  | 'last_standing';
+
+export interface WinResult {
+  winnerId: string;
+  reason: WinReason;
+}
+
 /**
- * Returns the winning playerId if a property-based win condition is met,
- * or null otherwise.
- *
- * @param rules      Active game rules
- * @param playerIds  IDs of all non-bankrupt players
- * @param ownedByPlayer  Map of playerId → Set<property_index>
+ * Returns a WinResult if a property-based win condition is met, or null otherwise.
  */
 export function checkPropertyWinner(
   rules: GameRules,
   playerIds: string[],
   ownedByPlayer: Map<string, Set<number>>
-): string | null {
+): WinResult | null {
   if (!rules.win_color_line && !rules.win_monopoly_or_stations) return null;
 
   for (const playerId of playerIds) {
@@ -54,25 +60,35 @@ export function checkPropertyWinner(
 
     if (rules.win_color_line) {
       for (const indices of Object.values(COLOR_GROUP_INDICES)) {
-        if (indices.every((i) => owned.has(i))) return playerId;
+        if (indices.every((i) => owned.has(i))) {
+          return { winnerId: playerId, reason: 'win_color_line' };
+        }
       }
     }
 
     if (rules.win_monopoly_or_stations) {
-      // Check all 4 stations
-      if (STATION_INDICES.every((i) => owned.has(i))) return playerId;
-
-      // Check 3+ complete color monopolies
+      if (STATION_INDICES.every((i) => owned.has(i))) {
+        return { winnerId: playerId, reason: 'win_stations_4' };
+      }
       let monopolies = 0;
       for (const indices of Object.values(COLOR_GROUP_INDICES)) {
         if (indices.every((i) => owned.has(i))) monopolies++;
       }
-      if (monopolies >= 3) return playerId;
+      if (monopolies >= 3) {
+        return { winnerId: playerId, reason: 'win_monopoly_3' };
+      }
     }
   }
 
   return null;
 }
+
+export const WIN_REASON_LABEL: Record<WinReason, string> = {
+  win_color_line:   '🎨 Completó una línea entera de propiedades',
+  win_monopoly_3:   '👑 Completó 3 monopolios distintos',
+  win_stations_4:   '🚉 Adquirió las 4 estaciones',
+  last_standing:    '💀 Último jugador en pie',
+};
 
 /** Build a playerId → Set<property_index> map from a properties array */
 export function buildOwnershipMap(

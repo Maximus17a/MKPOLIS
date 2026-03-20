@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 import { occUpdate, ConflictError, conflictResponse } from '@/lib/occ';
+import { WIN_REASON_LABEL } from '@/lib/game/rules';
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
         if (winner) {
           await db.from('game_logs').insert({
             game_id: gameId, player_id: winner.id,
-            message: `🏆 ¡${winner.id} gana la partida!`,
+            message: `🏆 ${WIN_REASON_LABEL['last_standing']}`,
             action_type: 'game_over',
           });
         }

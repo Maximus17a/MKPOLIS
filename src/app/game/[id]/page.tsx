@@ -593,24 +593,41 @@ export default function GamePage() {
   // ─── Game Over Check ───
   if (store.game?.status === 'finished') {
     const winner = store.players.find((p) => !p.is_bankrupt);
+    const winLog = [...store.logs].reverse().find((l) => l.action_type === 'game_over');
+    // Strip the leading trophy emoji from the log message for the subtitle
+    const winConditionLabel = winLog?.message?.replace(/^🏆\s*/, '') ?? null;
+    const winnerName = winner ? store.getPlayerName(winner) : null;
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center space-y-4">
+        <motion.div
+          className="text-center space-y-5 max-w-sm w-full mx-auto px-6"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="text-6xl">🏆</div>
           <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
             GAME OVER
           </h1>
+
           {winner && (
-            <p className="text-xl text-cyan-300">
-              Jugador {winner.turn_order + 1} gana con ${winner.balance}
-            </p>
+            <div className="p-4 rounded-2xl border border-yellow-500/30 bg-yellow-900/10 space-y-2">
+              <p className="text-xl font-bold text-yellow-300">{winnerName} gana</p>
+              <p className="text-sm text-cyan-400/70">Saldo final: ${winner.balance}</p>
+              {winConditionLabel && (
+                <p className="text-sm text-cyan-200/90 font-semibold border-t border-yellow-500/20 pt-2 mt-2">
+                  {winConditionLabel}
+                </p>
+              )}
+            </div>
           )}
+
           <button
             onClick={() => router.push('/')}
-            className="inline-block mt-4 px-6 py-3 rounded-xl bg-cyan-600 text-white font-bold hover:bg-cyan-500"
+            className="inline-block mt-2 px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold hover:from-cyan-500 hover:to-purple-500"
           >
             Volver al Lobby
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }

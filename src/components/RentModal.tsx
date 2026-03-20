@@ -58,8 +58,10 @@ export default function RentModal({ gameId }: RentModalProps) {
   }, 0);
 
   const netWorth = player.balance + totalAssetValue;
-  const canRecover = netWorth >= pendingRent.amount; // can pay if they sell/mortgage
-  const mustBankrupt = !canPay && !canRecover;
+  const hasAssets = totalAssetValue > 0; // has anything to sell/mortgage
+  const canRecover = netWorth >= pendingRent.amount; // selling everything covers it
+  // Only show bankrupt button once there are literally no assets left to liquidate
+  const mustBankrupt = !canPay && !hasAssets;
 
   const handlePay = async () => {
     if (paying || !canPay) return;
@@ -161,14 +163,16 @@ export default function RentModal({ gameId }: RentModalProps) {
                 <div className="p-3 rounded-lg bg-red-900/10 border border-red-500/20">
                   <p className="text-xs text-red-300 text-center leading-relaxed">
                     <span className="font-bold">Fondos insuficientes.</span>
-                    {canRecover
-                      ? ' Hipoteca o vende propiedades en "Mis Propiedades" para obtener fondos.'
-                      : ' No puedes cubrir esta deuda.'}
+                    {hasAssets
+                      ? canRecover
+                        ? ' Hipoteca o vende propiedades en "Mis Propiedades" para obtener fondos.'
+                        : ' Vende lo que puedas y luego declara bancarrota.'
+                      : ' No tienes activos con qué cubrir esta deuda.'}
                   </p>
                 </div>
 
-                {/* Go manage properties to get funds */}
-                {canRecover && (
+                {/* Go manage properties to get funds — show whenever any assets exist */}
+                {hasAssets && (
                   <motion.button
                     onClick={() => setMinimized(true)}
                     className="w-full py-2.5 rounded-xl bg-yellow-900/30 border border-yellow-500/30 text-yellow-300 font-bold text-sm hover:bg-yellow-800/30"
